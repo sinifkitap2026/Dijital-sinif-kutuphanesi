@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K12 Kitaplık – Barkodlu Test</title>
+<style>
+:root{--navy:#17324d;--bg:#f4f7fa;--card:#fff;--muted:#697784;--line:#dfe5ea;--ok:#2d7a46;--danger:#b53a3a;--warn:#9a6a11}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#15212b}
+header{background:var(--navy);color:white;padding:18px 16px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:21px}.subtitle{font-size:12px;opacity:.82;margin-top:4px}
+main{max-width:760px;margin:0 auto;padding:12px 10px 90px}
+.view{display:none}.view.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.card{background:var(--card);border:1px solid #e8edf1;border-radius:15px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px #0000000b}
+.stat{font-size:28px;font-weight:700}.small{font-size:12px;color:var(--muted)}
+button,input,select{font:inherit}button{border:0;border-radius:11px;padding:12px 14px;font-weight:700;cursor:pointer}
+.primary{background:var(--navy);color:#fff}.success{background:var(--ok);color:#fff}.danger{background:var(--danger);color:#fff}.light{background:#eaf0f5;color:var(--navy)}
+.full{width:100%;margin-top:8px}
+input,select{width:100%;padding:11px 12px;border:1px solid #cfd8df;border-radius:10px;background:white;margin-top:5px}
+label{display:block;margin-top:11px;font-size:13px;font-weight:700}
+.notice{background:#eef5fa;border-radius:11px;padding:11px;font-size:13px;line-height:1.55}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid #edf0f2}
+.title{font-weight:700}.meta{font-size:12px;color:var(--muted);margin-top:3px}
+.badge{display:inline-block;background:#edf2f6;border-radius:20px;padding:5px 8px;font-size:11px}
+.overdue{color:var(--danger);font-weight:700}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:10}
+nav button{flex:1;background:#fff;border-radius:0;font-size:11px;padding:11px 4px}
+#scanner{position:relative;border-radius:14px;overflow:hidden;background:#0d1115;min-height:230px}
+#video{width:100%;display:block;max-height:55vh;object-fit:cover}
+.scanbox{position:absolute;left:12%;right:12%;top:25%;bottom:25%;border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 9999px #0005}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;justify-content:center;z-index:20}
+.modal.show{display:flex}.sheet{width:100%;max-width:760px;background:white;border-radius:18px 18px 0 0;padding:16px;max-height:90vh;overflow:auto}
+.actions{display:flex;gap:8px}.actions button{flex:1}
+hr{border:0;border-top:1px solid #eee;margin:14px 0}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}.report-table th,.report-table td{border:1px solid #e0e5e9;padding:7px;text-align:left}.report-table th{background:#eef3f6}.report-card{background:#f8fafb;border-radius:10px;padding:9px;margin-top:8px}.nowrap{white-space:nowrap}</style>
+</head>
+<body>
+<header>
+  <h1>📚 K12 Kitaplık – 3/B</h1>
+  <div class="subtitle">Barkodlu geçici test sistemi</div>
+</header>
+
+<main>
+  <section id="home" class="view active">
+    <div class="grid">
+      <div class="card"><div id="bookCount" class="stat">0</div><div class="small">Toplam kitap</div></div>
+      <div class="card"><div id="loanCount" class="stat">0</div><div class="small">Ödünçte</div></div>
+      <div class="card"><div id="availableCount" class="stat">0</div><div class="small">Müsait</div></div>
+      <div class="card"><div id="overdueCount" class="stat">0</div><div class="small">Geciken</div></div>
+    </div>
+
+    <button class="primary full" onclick="openScanner()">📷 KİTAP BARKODU / QR OKUT</button>
+
+    <div class="notice" style="margin-top:10px">
+      <b>Hazır test:</b> Türkiye'nin Maarif Davası<br>
+      <b>Yazar:</b> Nurettin Topçu · <b>Yayınevi:</b> Dergâh Yayınları<br>
+      <b>Barkod:</b> 9789757032182
+    </div>
+
+    <div class="card" style="margin-top:10px">
+      <b>Aktif ödünçler</b>
+      <div id="activeLoans"></div>
+    </div>
+  </section>
+
+  <section id="loanForm" class="view">
+    <div class="card">
+      <h2>📖 Kitabı Ver</h2>
+      <div id="selectedBook" class="notice"></div>
+      <label>Öğrenci / Öğretmen-Personel</label>
+      <select id="personSelect"></select>
+      <label>İade tarihi</label>
+      <input id="dueDate" type="date">
+      <button class="success full" onclick="lendBook()">KİTABI VER</button>
+      <button class="light full" onclick="showView('home')">İPTAL</button>
+    </div>
+  </section>
+
+  <section id="people" class="view">
+    <div class="card">
+      <h2>👥 Kişiler</h2>
+      <div class="notice">24. kayıt: <b>AHMED BORUZA</b> · <b>Öğretmen/Personel</b></div>
+      <input id="personSearch" placeholder="İsim ara..." oninput="renderPeople()">
+      <div id="peopleList"></div>
+    </div>
+  </section>
+
+  <section id="books" class="view">
+    <div class="card">
+      <h2>📚 Kitaplar</h2>
+      <input id="bookSearch" placeholder="Kitap adı veya barkod ara..." oninput="renderBooks()">
+      <div id="bookList"></div>
+    </div>
+  </section>
+
+  <section id="loans" class="view">
+    <div class="card">
+      <h2>🔄 Ödünç / İade</h2>
+      <div id="loanList"></div>
+    </div>
+  </section>
+<section id="reports" class="view"><div class="card"><h2>📊 Raporlar</h2><div class="notice">Tek öğrenci/personel geçmişi, toplu 3/B özeti ve tarih bazlı alış/iade hareketleri.</div><label>Tek kişi raporu</label><select id="reportPerson" onchange="renderReports()"></select><div id="personSummary" class="grid" style="margin-top:10px"></div><div id="personReport"></div><hr><h3>👥 Toplu 3/B Raporu</h3><input id="reportSearch" placeholder="Öğrenci ara..." oninput="renderReports()"><div id="classReport"></div><hr><h3>📅 Tarih Bazlı Hareketler</h3><div class="actions"><input id="reportDate" type="date" onchange="renderReports()"><button class="light" onclick="clearReportDate()">Temizle</button></div><div id="dateReport"></div><button class="success full" onclick="exportCSV()">📥 EXCEL / CSV RAPORU DIŞA AKTAR</button></div></section></main>
+
+<nav>
+  <button onclick="showView('home')">🏠 Ana</button>
+  <button onclick="showView('people')">👥 Kişiler</button>
+  <button onclick="showView('books')">📚 Kitaplar</button>
+  <button onclick="showView('loans')">🔄 Ödünç</button><button onclick="showView('reports')">📊 Rapor</button>
+</nav>
+
+<div id="scannerModal" class="modal">
+  <div class="sheet">
+    <h2>📷 Barkod Tara</h2>
+    <div id="scanner">
+      <video id="video" playsinline muted></video>
+      <div class="scanbox"></div>
+    </div>
+    <div class="small" style="margin-top:8px">Kamera taraması desteklenmiyorsa aşağıdaki alana barkod numarasını yazıp test edebilirsin.</div>
+    <input id="barcodeInput" inputmode="numeric" placeholder="Örn. 9789757032182">
+    <div class="actions">
+      <button class="primary" onclick="processBarcode()">BARKODU OKU</button>
+      <button class="light" onclick="closeScanner()">KAPAT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEED = {"settings": {"className": "3/B", "loanDays": 7}, "people": [{"id": "P01", "number": "226", "name": "MUHAMMED MUSTAFA TECİK", "type": "Öğrenci", "group": "3/B"}, {"id": "P02", "number": "228", "name": "ÖMER CİNGİL", "type": "Öğrenci", "group": "3/B"}, {"id": "P03", "number": "248", "name": "MEHMET ABDÜLHAMİD KARS", "type": "Öğrenci", "group": "3/B"}, {"id": "P04", "number": "282", "name": "ÖMER PARLAK", "type": "Öğrenci", "group": "3/B"}, {"id": "P05", "number": "288", "name": "ABDURRAHMAN ÖZBAY", "type": "Öğrenci", "group": "3/B"}, {"id": "P06", "number": "295", "name": "AHSEN VERA GÜNEY", "type": "Öğrenci", "group": "3/B"}, {"id": "P07", "number": "297", "name": "ASEL MEVA KARAKEÇİLİ", "type": "Öğrenci", "group": "3/B"}, {"id": "P08", "number": "299", "name": "ASYA ZEYNEP AKDENİZ", "type": "Öğrenci", "group": "3/B"}, {"id": "P09", "number": "301", "name": "BURAK GÜLDÜOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P10", "number": "307", "name": "ELİF DEMİRCİOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P11", "number": "317", "name": "MEHMET SARAÇOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P12", "number": "325", "name": "MUHAMMED ALİ HAMZA TOPALOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P13", "number": "331", "name": "MUHAMMED TALHA KOÇ", "type": "Öğrenci", "group": "3/B"}, {"id": "P14", "number": "332", "name": "MUSTAFA ALİ GÖRÜMLÜ", "type": "Öğrenci", "group": "3/B"}, {"id": "P15", "number": "333", "name": "MUSTAFA DUMANLAR", "type": "Öğrenci", "group": "3/B"}, {"id": "P16", "number": "335", "name": "MUSTAFA KAHRAMAN", "type": "Öğrenci", "group": "3/B"}, {"id": "P17", "number": "342", "name": "ÖMER BERAT GÜLDÜOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P18", "number": "345", "name": "ÖMER BURAK DOĞAN", "type": "Öğrenci", "group": "3/B"}, {"id": "P19", "number": "347", "name": "ÖMER SALİH AYDIN", "type": "Öğrenci", "group": "3/B"}, {"id": "P20", "number": "354", "name": "TESLİME DOĞAN", "type": "Öğrenci", "group": "3/B"}, {"id": "P21", "number": "358", "name": "YUSUF AYDOĞAN", "type": "Öğrenci", "group": "3/B"}, {"id": "P22", "number": "360", "name": "YUSUF CANLEBLEBİCİ", "type": "Öğrenci", "group": "3/B"}, {"id": "P23", "number": "767", "name": "ELİF YELKENOĞLU", "type": "Öğrenci", "group": "3/B"}, {"id": "P24", "number": "", "name": "AHMED BORUZA", "type": "Öğretmen/Personel", "group": "Atlas Koleji"}], "books": [{"id": "B01", "no": 1, "title": "Kumbaramda Ne Saklı (Set)", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B02", "no": 2, "title": "Çantamdan Fil Çıktı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B03", "no": 3, "title": "Gelecek Ekspresi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B04", "no": 4, "title": "Hapı Yuttuk Eczanesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B05", "no": 5, "title": "Şifayı Kaptık Hastanesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B06", "no": 6, "title": "Yedek Kaleci", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B07", "no": 7, "title": "Hayalleri Uçuran Kanatlar", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B08", "no": 8, "title": "Dinozorların Saklandığı Yer", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B09", "no": 9, "title": "Benim Zürafam Uçabilir", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B10", "no": 10, "title": "Uzaya Giden Tren", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B11", "no": 11, "title": "Sıfır Kural Sınıfı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B12", "no": 12, "title": "Anne Terliği", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B13", "no": 13, "title": "Bitmeyen Teneffüs", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B14", "no": 14, "title": "Yaşasın Dedektif", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B15", "no": 15, "title": "Karınca Tobi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B16", "no": 16, "title": "Suffle Severler Sahnesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B17", "no": 17, "title": "Çöp Ülkesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B18", "no": 18, "title": "Patlamış Mısır Korsanları", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B19", "no": 19, "title": "Lollipop", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B20", "no": 20, "title": "Babam Süt Peşinde", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B21", "no": 21, "title": "Büyük Babamın Kocaman Denizi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B22", "no": 22, "title": "Fıstık Gibi Hayat", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B23", "no": 23, "title": "Oyun Satıcısı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B24", "no": 24, "title": "Kayıp Çiçeğin Sırrı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B25", "no": 25, "title": "Operasyon Nohut Pilav", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B26", "no": 26, "title": "Harika Organlar Diyarı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B27", "no": 27, "title": "Babaannem Geri Döndü", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B28", "no": 28, "title": "Balino", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B29", "no": 29, "title": "Portakalı Soydum Festivali", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B30", "no": 30, "title": "Naneyi Yedik Lokantası", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B31", "no": 31, "title": "Çantamın Tuhaf Hikayesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B32", "no": 32, "title": "Hayvanlarla Konuşan Çocuk", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B33", "no": 33, "title": "Dijital Dedektifler", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B34", "no": 34, "title": "Dokuz Canlı Kedi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B35", "no": 35, "title": "Naneyi Yedik Müzesi", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B36", "no": 36, "title": "Ayvayı Yedik Lokantası", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B37", "no": 37, "title": "Babası Kılıklı", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B38", "no": 38, "title": "Düşünce Kumandası", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B39", "no": 39, "title": "İyilik Bir Pusula", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B40", "no": 40, "title": "Gerçek Süper Güç", "author": "", "publisher": "", "barcode": "", "isbn": ""}, {"id": "B41", "no": 41, "title": "Türkiye'nin Maarif Davası", "author": "Nurettin Topçu", "publisher": "Dergâh Yayınları", "barcode": "9789757032182", "isbn": "9789757032182"}], "loans": []};
+const STORAGE_KEY = "k12_kitaplik_v4_test";
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || SEED;
+let currentBookId = null;
+let stream = null;
+let detector = null;
+let scanTimer = null;
+
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0,10);
+const addDays = days => { const d = new Date(); d.setDate(d.getDate()+Number(days)); return d.toISOString().slice(0,10); };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bookById = id => data.books.find(b => b.id === id);
+const personById = id => data.people.find(p => p.id === id);
+const activeLoanForBook = id => data.loans.find(l => l.bookId === id && !l.returnedAt);
+const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderAll(); };
+
+function showView(id){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  $(id).classList.add("active");
+  renderAll();
+}
+
+function renderAll(){
+  const active = data.loans.filter(l=>!l.returnedAt);
+  const overdue = active.filter(l=>l.dueAt < today());
+  $("bookCount").textContent = data.books.length;
+  $("loanCount").textContent = active.length;
+  $("availableCount").textContent = data.books.length - active.length;
+  $("overdueCount").textContent = overdue.length;
+
+  $("personSelect").innerHTML = data.people.map(p =>
+    `<option value="${p.id}">${esc(p.number || "—")} – ${esc(p.name)} (${esc(p.type)})</option>`
+  ).join("");
+  $("dueDate").value = addDays(data.settings.loanDays);
+
+  $("activeLoans").innerHTML = active.length ? active.map(l => {
+    const b=bookById(l.bookId), p=personById(l.personId), late=l.dueAt<today();
+    return `<div class="item">
+      <div><div class="title">${esc(b?.title)}</div>
+      <div class="meta">${esc(p?.name)} · İade: <span class="${late?'overdue':''}">${esc(l.dueAt)}</span></div></div>
+      <button class="success" onclick="returnBook('${l.id}')">İade</button>
+    </div>`;
+  }).join("") : `<div class="small" style="padding:14px 0">Aktif ödünç yok.</div>`;
+
+  $("loanList").innerHTML = active.length ? active.map(l => {
+    const b=bookById(l.bookId), p=personById(l.personId), late=l.dueAt<today();
+    return `<div class="item">
+      <div><div class="title">${esc(b?.title)}</div>
+      <div class="meta">${esc(p?.name)} · Veriliş: ${esc(l.borrowedAt)} · İade: <span class="${late?'overdue':''}">${esc(l.dueAt)}</span></div></div>
+      <button class="success" onclick="returnBook('${l.id}')">KİTABI GERİ AL</button>
+    </div>`;
+  }).join("") : `<div class="small" style="padding:14px 0">Aktif ödünç yok.</div>`;
+
+  renderPeople();
+  renderBooks();
+}
+
+function renderPeople(){
+  const q=($("personSearch")?.value||"").toLocaleLowerCase("tr-TR");
+  const arr=data.people.filter(p=>(p.name+" "+p.number+" "+p.type).toLocaleLowerCase("tr-TR").includes(q));
+  $("peopleList").innerHTML=arr.map(p=>
+    `<div class="item"><div><div class="title">${esc(p.name)}</div><div class="meta">${esc(p.number||"—")} · ${esc(p.type)}</div></div><span class="badge">${esc(p.group)}</span></div>`
+  ).join("");
+}
+
+function renderBooks(){
+  const q=($("bookSearch")?.value||"").toLocaleLowerCase("tr-TR");
+  const arr=data.books.filter(b=>(b.title+" "+b.barcode+" "+b.author).toLocaleLowerCase("tr-TR").includes(q));
+  $("bookList").innerHTML=arr.map(b=>{
+    const loan=activeLoanForBook(b.id);
+    return `<div class="item"><div>
+      <div class="title">${b.no}. ${esc(b.title)}</div>
+      <div class="meta">${b.author?esc(b.author)+" · ":""}${b.publisher?esc(b.publisher)+" · ":""}
+      ${b.barcode?"🏷️ "+esc(b.barcode):"⚠️ Barkod tanımlı değil"} · ${loan?"Ödünçte":"Müsait"}</div>
+    </div></div>`;
+  }).join("");
+}
+
+async function openScanner(){
+  $("scannerModal").classList.add("show");
+  $("barcodeInput").value="";
+  $("cameraStatus").innerHTML="📷 Kamera izni isteniyor...";
+  try{
+    if(!window.isSecureContext){
+      $("cameraStatus").innerHTML="⚠️ Kamera için HTTPS veya localhost gerekir. Manuel barkod girişi yine çalışır.";
+      return;
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      $("cameraStatus").innerHTML="⚠️ Bu tarayıcı kamera erişimini desteklemiyor.";
+      return;
+    }
+    if(!("BarcodeDetector" in window)){
+      $("cameraStatus").innerHTML="⚠️ Otomatik barkod tarama desteği yok. Kamera açılabilir; manuel giriş de kullanılabilir.";
+      return;
+    }
+    detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128","qr_code"]});
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    $("video").srcObject=stream;
+    await $("video").play();
+    $("cameraStatus").innerHTML="✅ Kamera açık. Barkodu çerçevenin içine getir.";
+    clearInterval(scanTimer);
+    scanTimer=setInterval(scanFrame,350);
+  }catch(e){
+    $("cameraStatus").innerHTML="❌ Kamera izni alınamadı. Chrome'da bu site için Kamera → İzin ver seç.";
+  }
+}
+
+async function requestCameraPermission(){
+  try{
+    if(!window.isSecureContext){ alert("Kamera için HTTPS veya localhost gerekir."); return; }
+    if(!navigator.mediaDevices?.getUserMedia){ alert("Tarayıcı kamera erişimini desteklemiyor."); return; }
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    $("video").srcObject=stream;
+    await $("video").play();
+    $("cameraStatus").innerHTML="✅ Kamera izni verildi. Barkodu çerçeveye getir.";
+    if("BarcodeDetector" in window){
+      detector=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128","qr_code"]});
+      clearInterval(scanTimer);
+      scanTimer=setInterval(scanFrame,350);
+    }
+  }catch(e){
+    alert("Kamera izni alınamadı. Android Chrome'da adres çubuğundaki kilit simgesi → Site ayarları → Kamera → İzin ver.");
+  }
+}
+
+function closeScanner(){
+  clearInterval(scanTimer);
+  scanTimer=null;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  $("video").srcObject=null;
+  $("cameraStatus").innerHTML="📷 Kamera açılmaya hazır.";
+  $("scannerModal").classList.remove("show");
+}
+
+async function scanFrame(){
+  if(!detector || !$("video").videoWidth) return;
+  try{
+    const codes=await detector.detect($("video"));
+    if(codes.length && codes[0].rawValue){
+      $("barcodeInput").value=codes[0].rawValue;
+      processBarcode();
+    }
+  }catch(e){}
+}
+
+function processBarcode(){
+  const code=$("barcodeInput").value.trim().replace(/\D/g,"");
+  if(!code){ alert("Barkod numarası bulunamadı."); return; }
+  const book=data.books.find(b=>b.barcode===code);
+  if(!book){
+    alert("Bu barkod kayıtlı değil.");
+    return;
+  }
+  const loan=activeLoanForBook(book.id);
+  if(loan){
+    const p=personById(loan.personId);
+    closeScanner();
+    alert("Bu kitap şu anda " + (p?.name || "bir kişide") + " üzerinde.\n\nÖdünç / İade ekranından KİTABI GERİ AL ile iade edebilirsin.");
+    showView("loans");
+    return;
+  }
+  currentBookId=book.id;
+  closeScanner();
+  $("selectedBook").innerHTML =
+    `<b>Kitap bulundu ✅</b><br>${esc(book.title)}<br>
+     <span class="small">Barkod: ${esc(book.barcode)}${book.author?" · "+esc(book.author):""}</span>`;
+  $("dueDate").value=addDays(data.settings.loanDays);
+  showView("loanForm");
+}
+
+function lendBook(){
+  if(!currentBookId){alert("Kitap seçilmedi.");return;}
+  if(activeLoanForBook(currentBookId)){alert("Bu kitap zaten ödünçte.");return;}
+  const personId=$("personSelect").value;
+  const dueAt=$("dueDate").value;
+  if(!personId || !dueAt){alert("Kişi ve iade tarihi seçilmeli.");return;}
+  data.loans.push({
+    id:"L"+Date.now(),
+    bookId:currentBookId,
+    personId,
+    borrowedAt:today(),
+    dueAt,
+    returnedAt:null
+  });
+  save();
+  const p=personById(personId), b=bookById(currentBookId);
+  alert("Kitap verildi ✅\n\n"+b.title+"\n→ "+p.name+"\nİade: "+dueAt);
+  currentBookId=null;
+  showView("home");
+}
+
+function returnBook(loanId){
+  const loan=data.loans.find(l=>l.id===loanId);
+  if(!loan)return;
+  const b=bookById(loan.bookId), p=personById(loan.personId);
+  if(confirm(`"${b?.title}" kitabını ${p?.name} kişisinden geri alayım mı?`)){
+    loan.returnedAt=today();
+    save();
+  }
+}
+
+function setupReports(){const sel=document.getElementById("reportPerson");if(!sel)return;const old=sel.value;sel.innerHTML=data.people.map(p=>`<option value="${p.id}">${esc(p.name)} (${esc(p.type)})</option>`).join("");if(old&&data.people.some(p=>p.id===old))sel.value=old;else if(data.people[0])sel.value=data.people[0].id;}
+function renderReports(){setupReports();const pid=document.getElementById("reportPerson")?.value;const all=data.loans.filter(l=>l.personId===pid),returned=all.filter(l=>l.returnedAt),active=all.filter(l=>!l.returnedAt),overdue=active.filter(l=>l.dueAt<today());const sum=document.getElementById("personSummary");if(sum)sum.innerHTML=`<div class="card"><div class="stat">${all.length}</div><div class="small">Toplam aldığı</div></div><div class="card"><div class="stat">${returned.length}</div><div class="small">İade ettiği</div></div><div class="card"><div class="stat">${active.length}</div><div class="small">Şu anda ödünçte</div></div><div class="card"><div class="stat">${overdue.length}</div><div class="small">Geciken</div></div>`;const pr=document.getElementById("personReport");pr.innerHTML=all.length?`<div class="report-card"><b>${esc(personById(pid)?.name||"")}</b></div><table class="report-table"><tr><th>Kitap</th><th>Alış</th><th>İade</th><th>Son Tarih</th><th>Durum</th></tr>${all.slice().sort((a,b)=>b.borrowedAt.localeCompare(a.borrowedAt)).map(l=>{const b=bookById(l.bookId),status=l.returnedAt?"İade edildi":(l.dueAt<today()?"Gecikti":"Ödünçte");return `<tr><td>${esc(b?.title)}</td><td>${l.borrowedAt}</td><td>${l.returnedAt||"—"}</td><td>${l.dueAt}</td><td>${status}</td></tr>`}).join("")}</table>`:`<div class="small" style="padding:12px 0">Bu kişi için henüz kitap hareketi yok.</div>`;const q=(document.getElementById("reportSearch")?.value||"").toLocaleLowerCase("tr-TR"),people=data.people.filter(p=>(p.name+" "+p.number).toLocaleLowerCase("tr-TR").includes(q)),cr=document.getElementById("classReport");cr.innerHTML=`<table class="report-table"><tr><th>Kişi</th><th>Toplam</th><th>İade</th><th>Ödünçte</th><th>Geciken</th></tr>`+people.map(p=>{const a=data.loans.filter(l=>l.personId===p.id),ac=a.filter(l=>!l.returnedAt);return `<tr><td>${esc(p.name)}<br><span class="small">${esc(p.type)}</span></td><td>${a.length}</td><td>${a.filter(l=>l.returnedAt).length}</td><td>${ac.length}</td><td>${ac.filter(l=>l.dueAt<today()).length}</td></tr>`}).join("")+`</table>`;const date=document.getElementById("reportDate")?.value,dr=document.getElementById("dateReport");if(date){const ev=[];data.loans.forEach(l=>{if(l.borrowedAt===date)ev.push(["Kitap verildi",l]);if(l.returnedAt===date)ev.push(["Kitap iade edildi",l])});dr.innerHTML=ev.length?`<table class="report-table"><tr><th>İşlem</th><th>Kişi</th><th>Kitap</th></tr>${ev.map(e=>`<tr><td>${e[0]}</td><td>${esc(personById(e[1].personId)?.name)}</td><td>${esc(bookById(e[1].bookId)?.title)}</td></tr>`).join("")}</table>`:`<div class="small" style="padding:12px 0">Bu tarihte kayıt bulunamadı.</div>`}else dr.innerHTML='<div class="small" style="padding:12px 0">Tarih seçerek o günün tüm alış/iade hareketlerini görebilirsin.</div>'}
+function clearReportDate(){document.getElementById("reportDate").value="";renderReports()}
+function exportCSV(){const rows=[["Kişi No","Kişi","Tür","Kitap","Barkod","Alış Tarihi","İade Tarihi","Son İade Tarihi","Durum"]];data.loans.slice().sort((a,b)=>a.borrowedAt.localeCompare(b.borrowedAt)).forEach(l=>{const p=personById(l.personId),b=bookById(l.bookId),st=l.returnedAt?"İade edildi":(l.dueAt<today()?"Gecikti":"Ödünçte");rows.push([p?.number||"",p?.name||"",p?.type||"",b?.title||"",b?.barcode||"",l.borrowedAt,l.returnedAt||"",l.dueAt,st])});const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(";")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Kitaplik_Raporu.csv";a.click();URL.revokeObjectURL(a.href)}
+renderAll();
+renderReports();
+</script>
+</body>
+</html>
