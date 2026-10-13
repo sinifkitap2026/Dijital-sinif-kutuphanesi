@@ -74,8 +74,8 @@ async function signOut(){await sbClient.auth.signOut();location.reload()}
 async function loadFromSupabase(){const [cl,st,bk,cb,ln]=await Promise.all([sbClient.from('classes').select('*'),sbClient.from('students').select('*'),sbClient.from('books').select('*'),sbClient.from('class_books').select('*'),sbClient.from('loans').select('*')]);const err=[cl,st,bk,cb,ln].find(x=>x.error);if(err)throw err.error;const classes=cl.data,students=st.data,books=bk.data,classBooks=cb.data,loans=ln.data;const clsMap=Object.fromEntries(classes.map(c=>[c.id,c]));data.people=students.map(x=>({id:String(x.id),number:String(x.student_number??''),name:x.name,type:'Öğrenci',group:clsMap[x.class_id]?.name||''}));data.books=classBooks.map(x=>{const b=books.find(y=>y.id===x.book_id),c=clsMap[x.class_id];return {id:String(x.id),bookId:String(x.book_id),classBookId:String(x.id),no:b?.id??x.id,title:b?.title||'',author:b?.author||'',publisher:b?.publisher||'',barcode:b?.barcode||'',isbn:b?.isbn||'',branch:c?.name||'',cover:''}});data.loans=loans.map(l=>({id:String(l.id),bookId:String(l.class_book_id),personId:String(l.student_id),borrowedAt:l.loan_date,dueAt:l.due_date,returnedAt:l.return_date}));renderAll()}
 async function syncLoanToSupabase(l){const {error}=await sbClient.from('loans').insert({class_book_id:Number(l.bookId),student_id:Number(l.personId),loan_date:l.borrowedAt,due_date:l.dueAt,status:'borrowed'});if(error)throw error}
 async function syncReturnToSupabase(l){const {error}=await sbClient.from('loans').update({return_date:l.returnedAt,status:'returned'}).eq('id',Number(l.id));if(error)throw error}
-function enterTeacher(){mode="teacher";currentBranch=$("teacherBranch").value;sessionStorage.setItem("atlasMode",mode);sessionStorage.setItem("atlasBranch",currentBranch);startApp()}
-function enterAdmin(){mode="admin";currentBranch="TÜMÜ";sessionStorage.setItem("atlasMode",mode);sessionStorage.setItem("atlasBranch",currentBranch);startApp()}
+function enterTeacher(){alert('Öğretmen girişi için size tanımlanan e-posta ve şifreyle giriş yapın.');}
+function enterAdmin(){alert('Yönetici girişi için yönetici hesabıyla giriş yapın.');}
 function startApp(){$("start").classList.remove('active');$("nav").style.display='flex';updateHeader();showView('home');renderAll()}
 function changeMode(){$("start").classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));}
 function updateHeader(){$("headerSub").textContent=mode==="admin"?"Yönetici · "+currentBranch:"Öğretmen · "+currentBranch+" · "+BRANCHES[currentBranch].teacher;$('modeLabel').textContent=mode==="admin"?"🛠️ Yönetici":"👩‍🏫 Öğretmen";$('branchLabel').textContent=currentBranch+(currentBranch!=="TÜMÜ"?" · "+BRANCHES[currentBranch].teacher:"")}
@@ -99,24 +99,42 @@ async function saveManagedBook(){
  if(!branch||branch==='TÜMÜ'){alert('Önce bir şube seçin.');return}
  if(!code){alert('Önce kitabın barkodunu okutun veya barkodu girin.');return}
  try{
-   // Central catalog: barcode identifies the book, not the branch.
+   // Barkod merkezî kataloğu tanımlar; mevcut kitap düzenlenirken şube bağlantısı korunur.
    let central=null;
+   const current=currentBookId ? bookById(currentBookId) : null;
+   const currentCentralId=current?.bookId ? Number(current.bookId) : null;
    const {data:existing,error:findErr}=await sbClient.from('books').select('*').eq('barcode',code).maybeSingle();
    if(findErr)throw findErr;
-   if(existing){
+
+   if(currentCentralId && (!existing || Number(existing.id)===currentCentralId)){
+      const {data:updated,error:uErr}=await sbClient.from('books')
+        .update({title,author:author||null,publisher:publisher||null,isbn:code,barcode:code})
+        .eq('id',currentCentralId).select().single();
+      if(uErr)throw uErr;
+      central=updated;
+   }else if(existing){
       central=existing;
-      const {error:uErr}=await sbClient.from('books').update({title,author:author||null,publisher:publisher||null,isbn:code}).eq('id',central.id);
+      const {error:uErr}=await sbClient.from('books')
+        .update({title,author:author||null,publisher:publisher||null,isbn:code})
+        .eq('id',central.id);
       if(uErr)throw uErr;
    }else{
-      const {data:created,error:iErr}=await sbClient.from('books').insert({title,author:author||null,publisher:publisher||null,isbn:code,barcode:code}).select().single();
+      const {data:created,error:iErr}=await sbClient.from('books')
+        .insert({title,author:author||null,publisher:publisher||null,isbn:code,barcode:code})
+        .select().single();
       if(iErr)throw iErr;
       central=created;
    }
-   // Link this central book to the selected class if not already linked.
+
    const {data:cls,error:cErr}=await sbClient.from('classes').select('id').eq('name',branch).single();
    if(cErr)throw cErr;
-   const {error:cbErr}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id});
-   if(cbErr && cbErr.code!=='23505')throw cbErr;
+   const {data:link,error:linkErr}=await sbClient.from('class_books').select('id')
+     .eq('class_id',cls.id).eq('book_id',central.id).maybeSingle();
+   if(linkErr)throw linkErr;
+   if(!link){
+      const {error:cbErr}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id});
+      if(cbErr)throw cbErr;
+   }
    await loadFromSupabase();
    const linked=data.books.find(x=>x.bookId===String(central.id)&&x.branch===branch);
    currentBookId=linked?.id||null;
@@ -128,7 +146,23 @@ async function saveManagedBook(){
 }
 function deleteManagedBook(){const b=bookById(currentBookId);if(!b){alert('Silinecek kitap seçili değil.');return}if(data.loans.some(l=>l.bookId===b.id)){alert('Bu kitabın ödünç/iade geçmişi var. Raporların bozulmaması için silinemez.');return}if(!confirm(`“${b.title}” kitabını silmek istediğinize emin misiniz?`))return;data.books=data.books.filter(x=>x.id!==b.id);currentBookId=null;save();renderBarcodeAdmin();clearManagedForm();alert('Kitap silindi.')}
 
-function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLowerCase('tr-TR');const branch=managedBranch();const base=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const arr=base.filter(b=>(b.title+' '+b.author+' '+b.publisher+' '+b.barcode).toLocaleLowerCase('tr-TR').includes(q));$('barcodeList').innerHTML=arr.map(b=>`<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author||'Yazar yok')} · ${esc(b.publisher||'Yayınevi yok')}</div><div class="meta">${esc(b.branch)} · ${b.barcode?'🏷️ '+esc(b.barcode):'⚠️ Barkodsuz'}</div></div></div><button class="light" onclick="$('barcodeBookSelect').value='${b.id}';loadBarcodeBook()">DÜZENLE</button></div>`).join('')}
+function editManagedBook(id){
+ const b=bookById(String(id));
+ if(!b){alert('Seçilen kitap bulunamadı.');return;}
+ const branchSel=$('manageBranchSelect');
+ if(branchSel && branchSel.value!==b.branch){
+   branchSel.value=b.branch;
+   renderBarcodeAdmin();
+ }
+ const sel=$('barcodeBookSelect');
+ if(!sel)return;
+ sel.value=String(id);
+ currentBookId=String(id);
+ loadBarcodeBook();
+ $('manageTitle').scrollIntoView({behavior:'smooth',block:'center'});
+ $('manageTitle').focus({preventScroll:true});
+}
+function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLowerCase('tr-TR');const branch=managedBranch();const base=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const arr=base.filter(b=>(b.title+' '+b.author+' '+b.publisher+' '+b.barcode).toLocaleLowerCase('tr-TR').includes(q));$('barcodeList').innerHTML=arr.map(b=>`<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author||'Yazar yok')} · ${esc(b.publisher||'Yayınevi yok')}</div><div class="meta">${esc(b.branch)} · ${b.barcode?'🏷️ '+esc(b.barcode):'⚠️ Barkodsuz'}</div></div></div><button class="light" onclick="editManagedBook('${b.id}')">DÜZENLE</button></div>`).join('')}
 function duplicateBarcode(code,except){return false}
 function saveAssignedBarcode(){saveManagedBook()}
 function deleteAssignedBarcode(){deleteManagedBook()}
