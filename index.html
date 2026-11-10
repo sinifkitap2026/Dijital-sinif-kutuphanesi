@@ -203,11 +203,11 @@ function searchInKasif(){
  $('assignStatus').textContent='Kaşif’te ISBN araması yeni sekmede açıldı. Uygun kaydı kontrol ederek bilgileri forma aktarabilirsiniz.';
 }
 function normalizePublisher(value){
- return (value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\\s+/g,' ');
+ return (value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 }
 async function lookupBookByIsbn(value){
- const isbn=(value||$('manualIsbn').value||'').trim().replace(/\\D/g,'');
- if(!/^97[89]\\d{10}$/.test(isbn)){alert('Geçerli bir ISBN-13 barkodu okutun veya girin.');return}
+ const isbn=(value||$('manualIsbn').value||'').trim().replace(/\D/g,'');
+ if(!/^97[89]\d{10}$/.test(isbn)){alert('Geçerli bir ISBN-13 barkodu okutun veya girin.');return}
  $('manualIsbn').value=isbn;
  $('assignStatus').textContent='ISBN ve yayınevi eşleşmesi kontrol edilerek kitap bilgileri aranıyor...';
  try{
@@ -216,7 +216,7 @@ async function lookupBookByIsbn(value){
    const result=await response.json();
    const items=result.items||[];
    const exact=items.map(item=>item.volumeInfo||{}).filter(info=>{
-     const ids=(info.industryIdentifiers||[]).map(x=>(x.identifier||'').replace(/\\D/g,''));
+     const ids=(info.industryIdentifiers||[]).map(x=>(x.identifier||'').replace(/\D/g,''));
      return ids.includes(isbn);
    });
    const enteredPublisher=normalizePublisher($('managePublisher').value);
