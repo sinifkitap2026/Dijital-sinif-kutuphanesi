@@ -29,7 +29,7 @@
 <section id="people" class="view"><div class="card"><h2>👥 Öğrenciler</h2><input id="personSearch" placeholder="Öğrenci ara..." oninput="renderPeople()"><div id="peopleList"></div></div></section>
 <section id="books" class="view"><div class="card"><h2>📚 Kitaplar</h2><input id="bookSearch" placeholder="Kitap adı veya barkod ara..." oninput="renderBooks()"><div id="bookList"></div></div></section>
 <section id="loans" class="view"><div class="card"><h2>🔄 Ödünç / İade</h2><div id="loanList"></div></div></section>
-<section id="barcodeAdmin" class="view"><div class="card"><h2>📚 Kitap Yönetimi</h2><div class="notice">Önce kitabın ISBN bilgisini girin. Her fiziksel nüshaya ayrı barkod tanımlayın. Aynı kitabın farklı şubelerdeki nüshaları ayrı ayrı takip edilir.</div><div class="toolbar"><div><label>Şube</label><select id="manageBranchSelect" onchange="manageBranchChanged()"></select></div><div><label>Kitap seç</label><select id="barcodeBookSelect" onchange="loadBarcodeBook()"></select></div></div><div class="actions"><button class="primary" onclick="openAssignScanner()">📷 BARKOD OKUT</button><button class="light" onclick="newManagedBook()">➕ YENİ KİTAP</button></div><div id="assignStatus" class="notice" style="margin-top:8px">Hazır.</div><div class="formgrid"><div><label>Kitap adı</label><input id="manageTitle" placeholder="Kitap adı"></div><div><label>Yazar</label><input id="manageAuthor" placeholder="Yazar"></div><div><label>Yayınevi</label><input id="managePublisher" placeholder="Yayınevi"></div><div><label>ISBN (kitabın kimliği)</label><input id="manualIsbn" inputmode="numeric" placeholder="Örn. 9789757032182"></div><div><label>Fiziksel nüsha barkodu</label><input id="manualBarcode" inputmode="numeric" placeholder="Her nüshaya özel barkod"></div></div><div class="actions"><button class="success" onclick="saveManagedBook()">💾 KAYDET</button><button class="danger" onclick="deleteManagedBook()">🗑️ ŞUBE NÜSHASINI SİL</button><button class="light" onclick="currentBookId?openCoverManager(currentBookId):alert('Önce bir kitap seçin veya kaydedin.')">🖼️ KAPAK</button></div><div id="manageBookState" class="small" style="margin-top:8px"></div></div><div class="card"><h3>Kitapların Yönetim Listesi</h3><input id="barcodeSearch" placeholder="Kitap adı, yazar veya barkod ara..." oninput="renderBarcodeList()"><div id="barcodeList"></div></div></section>
+<section id="barcodeAdmin" class="view"><div class="card"><h2>📚 Kitap Yönetimi</h2><div class="notice">Kitabın arka kapağındaki ISBN barkodunu okutun. Sistem ISBN ile kitap bilgilerini arar; bilgileri kontrol edip kaydedin. Aynı barkod fiziksel nüsha barkodu olarak da saklanır. Kaşif kataloğunda ayrıca arama yapabilirsiniz.</div><div class="toolbar"><div><label>Şube</label><select id="manageBranchSelect" onchange="manageBranchChanged()"></select></div><div><label>Kitap seç</label><select id="barcodeBookSelect" onchange="loadBarcodeBook()"></select></div></div><div class="actions"><button class="primary" onclick="openAssignScanner()">📷 ISBN BARKODUNU OKUT – KİTABI BUL</button><button class="light" onclick="newManagedBook()">➕ YENİ KİTAP</button></div><div class="actions"><button class="light" onclick="searchInKasif()">🏛️ KAŞİF’TE ISBN ARA</button><button class="light" onclick="lookupBookByIsbn()">🌐 ISBN İLE OTOMATİK BİLGİ GETİR</button></div><div id="assignStatus" class="notice" style="margin-top:8px">Hazır.</div><div class="formgrid"><div><label>Kitap adı</label><input id="manageTitle" placeholder="Kitap adı"></div><div><label>Yazar</label><input id="manageAuthor" placeholder="Yazar"></div><div><label>Yayınevi</label><input id="managePublisher" placeholder="Yayınevi"></div><div><label>ISBN (kitabın kimliği)</label><input id="manualIsbn" inputmode="numeric" placeholder="Örn. 9789757032182"></div><div><label>Fiziksel nüsha barkodu</label><input id="manualBarcode" inputmode="numeric" placeholder="Her nüshaya özel barkod"></div></div><div class="actions"><button class="success" onclick="saveManagedBook()">💾 KAYDET</button><button class="danger" onclick="deleteManagedBook()">🗑️ ŞUBE NÜSHASINI SİL</button><button class="light" onclick="currentBookId?openCoverManager(currentBookId):alert('Önce bir kitap seçin veya kaydedin.')">🖼️ KAPAK</button></div><div id="manageBookState" class="small" style="margin-top:8px"></div></div><div class="card"><h3>Kitapların Yönetim Listesi</h3><input id="barcodeSearch" placeholder="Kitap adı, yazar veya barkod ara..." oninput="renderBarcodeList()"><div id="barcodeList"></div></div></section>
 <section id="reports" class="view"><div class="card"><h2>📊 Raporlar</h2><div class="notice">Anlık kimde, öğrenci kitap sayıları, zamanında/gecikmeli teslimler ve teslim edilmemiş kitaplar.</div><div class="toolbar"><div><label>Şube</label><select id="reportBranch" onchange="renderReports()"></select></div><div><label>Öğrenci</label><select id="reportPerson" onchange="renderReports()"></select></div></div><div class="summary" id="personSummary"></div><div id="personReport"></div><hr><h3>📚 Anlık: Hangi kitaplar kimlerde?</h3><div class="toolbar"><input id="reportLoanSearch" placeholder="Kitap / öğrenci ara..." oninput="renderReports()"><select id="reportLoanStatus" onchange="renderReports()"><option value="all">Tümü</option><option value="active">Ödünçte</option><option value="overdue">Süresi geçmiş</option></select></div><div id="activeReport"></div><hr><h3>👥 Öğrenci Genel Durumu</h3><input id="reportSearch" placeholder="Öğrenci ara..." oninput="renderReports()"><div id="classReport"></div><hr><div class="toolbar"><button class="success" onclick="exportCSV()">📥 EXCEL / CSV</button><button class="primary" onclick="printReport()">📄 PDF OLARAK KAYDET</button></div></div></section>
 </main>
 <nav id="nav"><button onclick="showView('home')">🏠 Ana</button><button onclick="showView('people')">👥 Öğrenciler</button><button onclick="showView('books')">📚 Kitaplar</button><button onclick="showView('loans')">🔄 Ödünç</button><button onclick="showView('barcodeAdmin')">📚 Kitap Yönetimi</button><button onclick="showView('reports')">📊 Rapor</button></nav>
@@ -151,17 +151,56 @@ async function openAssignScanner(){const m=$('assignModal');m.classList.add('sho
 async function useScannedBarcode(){
  const code=$('assignScanInput').value.trim().replace(/\D/g,'');
  if(!code){alert('Barkod bulunamadı.');return}
- if(mode!=='admin'){alert('Barkod tanımlama yalnızca yönetici hesabına açıktır.');return}
+ if(mode!=='admin'){alert('Kitap ekleme yalnızca yönetici hesabına açıktır.');return}
  const found=data.books.find(b=>b.barcode===code);
  if(found){
    const branchSel=$('manageBranchSelect');if(branchSel)branchSel.value=found.branch;
    renderBarcodeAdmin();$('barcodeBookSelect').value=found.id;loadBarcodeBook();
-   $('assignStatus').innerHTML=`✅ Bu barkod zaten tanımlı: <b>${esc(found.title)}</b> · ${esc(found.branch)}`;
- }else{
-   $('manualBarcode').value=code;
-   $('assignStatus').innerHTML=`🆕 Nüsha barkodu okundu: <b>${esc(code)}</b>. Kitap seçin veya yeni kitap bilgilerini doldurun.`;
+   $('assignStatus').innerHTML=`✅ Bu barkod zaten kayıtlı: <b>${esc(found.title)}</b> · ${esc(found.branch)}`;
+   closeAssignScanner();return;
  }
- closeAssignScanner();
+ $('manualBarcode').value=code;
+ if(/^97[89]\d{10}$/.test(code)){
+   $('manualIsbn').value=code;
+   $('assignStatus').textContent='ISBN barkodu okundu. Kitap bilgileri aranıyor...';
+   closeAssignScanner();
+   await lookupBookByIsbn(code);
+ }else{
+   $('assignStatus').innerHTML=`🏷️ Fiziksel barkod okundu: <b>${esc(code)}</b>. Kitap ISBN’sini ayrıca okutun veya girin.`;
+   closeAssignScanner();
+ }
+}
+function searchInKasif(){
+ const isbn=$('manualIsbn').value.trim().replace(/\D/g,'');
+ if(!isbn){alert('Önce ISBN barkodunu okutun veya ISBN numarasını girin.');return}
+ const url='https://kasif.mkutup.gov.tr/OpacArama.aspx?Ara='+encodeURIComponent(isbn)+'&DtSrc=0&fld=-1&NvBar=0';
+ window.open(url,'_blank','noopener');
+ $('assignStatus').textContent='Kaşif’te ISBN araması yeni sekmede açıldı. Uygun kaydı kontrol ederek bilgileri forma aktarabilirsiniz.';
+}
+async function lookupBookByIsbn(value){
+ const isbn=(value||$('manualIsbn').value||'').trim().replace(/\D/g,'');
+ if(!/^97[89]\d{10}$/.test(isbn)){alert('Geçerli bir ISBN-13 barkodu okutun veya girin.');return}
+ $('manualIsbn').value=isbn;
+ if(!$('manualBarcode').value)$('manualBarcode').value=isbn;
+ $('assignStatus').textContent='ISBN ile kitap bilgileri aranıyor...';
+ try{
+   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn));
+   if(!response.ok)throw new Error('Kitap veri kaynağına ulaşılamadı.');
+   const result=await response.json();
+   const info=result.items?.[0]?.volumeInfo;
+   if(info){
+     $('manageTitle').value=info.title||$('manageTitle').value;
+     $('manageAuthor').value=(info.authors||[]).join(', ')||$('manageAuthor').value;
+     $('managePublisher').value=info.publisher||$('managePublisher').value;
+     $('assignStatus').innerHTML='✅ Kitap bilgileri bulundu. Lütfen kontrol edin. <button class="light" onclick="searchInKasif()">KAŞİF KATALOĞUNDA KONTROL ET</button>';
+     return;
+   }
+   $('assignStatus').textContent='Google Books kaynağında kayıt bulunamadı. Kaşif kataloğunda arama yapabilirsiniz.';
+   searchInKasif();
+ }catch(e){
+   $('assignStatus').textContent='Otomatik bilgi kaynağına erişilemedi. Kaşif kataloğunda arama yapabilirsiniz.';
+   searchInKasif();
+ }
 }
 function closeAssignScanner(){clearInterval(assignTimer);if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
 async function openScanner(){
