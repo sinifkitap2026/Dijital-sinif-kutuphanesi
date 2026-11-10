@@ -202,29 +202,44 @@ function searchInKasif(){
  window.open(url,'_blank','noopener');
  $('assignStatus').textContent='Kaşif’te ISBN araması yeni sekmede açıldı. Uygun kaydı kontrol ederek bilgileri forma aktarabilirsiniz.';
 }
+function normalizePublisher(value){
+ return (value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
 async function lookupBookByIsbn(value){
  const isbn=(value||$('manualIsbn').value||'').trim().replace(/\D/g,'');
  if(!/^97[89]\d{10}$/.test(isbn)){alert('Geçerli bir ISBN-13 barkodu okutun veya girin.');return}
  $('manualIsbn').value=isbn;
- if(!$('manualBarcode').value)$('manualBarcode').value=isbn;
- $('assignStatus').textContent='ISBN ile kitap bilgileri aranıyor...';
+ $('assignStatus').textContent='ISBN ve yayınevi eşleşmesi kontrol edilerek kitap bilgileri aranıyor...';
  try{
-   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn));
+   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn)+'&maxResults=20');
    if(!response.ok)throw new Error('Kitap veri kaynağına ulaşılamadı.');
    const result=await response.json();
-   const info=result.items?.[0]?.volumeInfo;
-   if(info){
-     $('manageTitle').value=info.title||$('manageTitle').value;
-     $('manageAuthor').value=(info.authors||[]).join(', ')||$('manageAuthor').value;
-     $('managePublisher').value=info.publisher||$('managePublisher').value;
-     $('assignStatus').innerHTML='✅ Kitap bilgileri bulundu. Lütfen kontrol edin. <button class="light" onclick="searchInKasif()">KAŞİF KATALOĞUNDA KONTROL ET</button>';
+   const items=result.items||[];
+   const exact=items.map(item=>item.volumeInfo||{}).filter(info=>{
+     const ids=(info.industryIdentifiers||[]).map(x=>(x.identifier||'').replace(/\D/g,''));
+     return ids.includes(isbn);
+   });
+   const enteredPublisher=normalizePublisher($('managePublisher').value);
+   const matching=enteredPublisher?exact.find(info=>normalizePublisher(info.publisher)===enteredPublisher):null;
+   if(matching){
+     $('manageTitle').value=matching.title||$('manageTitle').value;
+     $('manageAuthor').value=(matching.authors||[]).join(', ')||$('manageAuthor').value;
+     $('managePublisher').value=matching.publisher||$('managePublisher').value;
+     $('assignStatus').innerHTML='✅ ISBN ve yayınevi eşleşti. Bilgileri kontrol edip kaydedebilirsiniz.';
      return;
    }
-   $('assignStatus').textContent='Google Books kaynağında kayıt bulunamadı. Kaşif kataloğunda arama yapabilirsiniz.';
-   searchInKasif();
+   if(exact.length){
+     const publishers=[...new Set(exact.map(info=>info.publisher).filter(Boolean))];
+     $('assignStatus').textContent=enteredPublisher
+       ? '⚠️ ISBN kaydı bulundu ancak yayınevi eşleşmedi. Başka yayınevinin kitabını otomatik aktarmadım. Elinizdeki kitabın bilgilerini elle girebilir veya Kaşif’te kontrol edebilirsiniz.'
+       : 'ISBN kaydı bulundu. Güvenli eşleştirme için önce kitabın yayınevini girin; yayınevi eşleşmeden bilgiler otomatik aktarılmayacak.';
+     if(publishers.length) $('assignStatus').textContent+=' Bulunan yayınevi: '+publishers.join(', ')+'.';
+   }else{
+     $('assignStatus').textContent='Bu ISBN için doğrulanmış katalog kaydı bulunamadı. Kitabı elle kaydedebilirsiniz; isterseniz Kaşif’te arayın.';
+   }
+   $('assignStatus').innerHTML=esc($('assignStatus').textContent)+' <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
  }catch(e){
-   $('assignStatus').textContent='Otomatik bilgi kaynağına erişilemedi. Kaşif kataloğunda arama yapabilirsiniz.';
-   searchInKasif();
+   $('assignStatus').innerHTML='Otomatik katalog kaynağına ulaşılamadı. Kitabı elle kaydedebilir veya Kaşif’te ISBN arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
  }
 }
 function closeAssignScanner(){clearInterval(assignTimer);if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
