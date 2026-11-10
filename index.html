@@ -39,6 +39,7 @@
 <div id="coverCameraModal" class="modal"><div class="sheet"><h2>📷 Kapak Fotoğrafı Çek</h2><video id="coverVideo" playsinline muted style="width:100%;border-radius:14px;background:#111"></video><div class="notice">Kapağın tamamını mümkün olduğunca düz ve aydınlık şekilde kadraja alın.</div><div class="actions"><button class="primary" onclick="captureCover()">FOTOĞRAFI ÇEK</button><button class="light" onclick="closeCoverCamera()">KAPAT</button></div><canvas id="coverCanvas" class="hidden"></canvas></div></div>
 <div id="cropModal" class="modal"><div class="sheet"><h2>✂️ Kapağı Kırp</h2><div class="crop-stage" id="cropStage"><img id="cropImage"></div><input id="zoomRange" class="range" type="range" min="0.4" max="3" step="0.01" value="1" oninput="updateCrop()"><div class="small">Fotoğrafı sürükleyin, yakınlaştırın ve beyaz çerçevenin içinde kapağın tamamını bırakın.</div><div class="actions" style="margin-top:10px"><button class="light" onclick="cancelCrop()">İPTAL</button><button class="primary" onclick="finishCrop()">KIRPMAYI TAMAMLA</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 const SUPABASE_URL="https://lmdjsfsgoevwtpiavmmn.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Gh-0iOMJVVZR9RSYnX3flA_v6bCXAwh";
@@ -53,7 +54,7 @@ const BOOK_TITLES=["Kumbaramda Ne Saklı (Set)","Çantamdan Fil Çıktı","Gelec
 const STORAGE_KEY="atlas_kitaplik_v8_final";
 function makeSeed(){const people=[];Object.keys(PEOPLE).forEach(g=>PEOPLE[g].forEach((x,i)=>people.push({id:"P"+g.replace("/","")+String(i+1).padStart(2,"0"),number:String(x[0]),name:x[1],type:"Öğrenci",group:g})));people.push({id:"PADMIN",number:"",name:"AHMED BORUZA",type:"Öğretmen/Personel",group:"3/B"});const books=[];Object.keys(BRANCHES).forEach(g=>BOOK_TITLES.forEach((title,i)=>books.push({id:"B"+g.replace("/","")+String(i+1).padStart(2,"0"),no:i+1,title,author:"",publisher:"",barcode:"",isbn:"",branch:g,cover:""})));books.push({id:"B3BTEST",no:41,title:"Türkiye'nin Maarif Davası",author:"Nurettin Topçu",publisher:"Dergâh Yayınları",barcode:"9789757032182",isbn:"9789757032182",branch:"3/B",cover:""});return {settings:{loanDays:7},people,books,loans:[]}}
 let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")||makeSeed();
-let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, assignStream=null, assignDetector=null, assignTimer=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
+let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, assignStream=null, assignDetector=null, assignTimer=null, assignReader=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today=()=>{const d=new Date();return d.toISOString().slice(0,10)};
 function addDays(n){const d=new Date();d.setDate(d.getDate()+Number(n||7));return d.toISOString().slice(0,10)}
@@ -147,7 +148,31 @@ function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLow
 function duplicateBarcode(code,except){return false}
 function saveAssignedBarcode(){saveManagedBook()}
 function deleteAssignedBarcode(){deleteManagedBook()}
-async function openAssignScanner(){const m=$('assignModal');m.classList.add('show');$('assignScanInput').value='';try{if(!window.isSecureContext)throw new Error('secure');if(!navigator.mediaDevices?.getUserMedia)throw new Error('media');assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});$('assignVideo').srcObject=assignStream;await $('assignVideo').play();$('assignCameraStatus').textContent='✅ Kamera açık.';if('BarcodeDetector' in window){assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});clearInterval(assignTimer);assignTimer=setInterval(async()=>{try{const c=await assignDetector.detect($('assignVideo'));if(c[0]?.rawValue){$('assignScanInput').value=c[0].rawValue;useScannedBarcode()}}catch(e){}},350)}}catch(e){$('assignCameraStatus').textContent='⚠️ Kamera kullanılamadı. Barkodu aşağıya elle yazabilirsiniz.'}}
+async function openAssignScanner(){
+ const m=$('assignModal');m.classList.add('show');$('assignScanInput').value='';$('assignCameraStatus').textContent='Kamera hazırlanıyor...';
+ try{
+   if(!window.isSecureContext)throw new Error('Bu sayfada kamera için HTTPS gerekiyor.');
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Tarayıcı kamera erişimini desteklemiyor.');
+   assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+   $('assignVideo').srcObject=assignStream;await $('assignVideo').play();
+   if('BarcodeDetector' in window){
+     assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});
+     $('assignCameraStatus').textContent='✅ Kamera açık. ISBN barkodunu kameraya gösterin.';
+     clearInterval(assignTimer);
+     assignTimer=setInterval(async()=>{try{const found=await assignDetector.detect($('assignVideo'));if(found[0]?.rawValue){clearInterval(assignTimer);$('assignScanInput').value=found[0].rawValue;await useScannedBarcode()}}catch(e){}},300);
+   }else if(window.ZXing?.BrowserMultiFormatReader){
+     assignReader=new ZXing.BrowserMultiFormatReader();
+     $('assignCameraStatus').textContent='✅ Alternatif barkod okuyucu hazır. ISBN barkodunu kameraya gösterin.';
+     assignReader.decodeFromVideoElementContinuously($('assignVideo'),async(result,error)=>{
+       if(result){assignReader.reset();$('assignScanInput').value=result.getText();await useScannedBarcode()}
+     });
+   }else{
+     $('assignCameraStatus').textContent='Kamera açık ancak otomatik barkod okuma bu tarayıcıda desteklenmiyor. ISBN numarasını aşağıya yazabilirsiniz.';
+   }
+ }catch(e){
+   $('assignCameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+' Barkod numarasını aşağıya da yazabilirsiniz.';
+ }
+}
 async function useScannedBarcode(){
  const code=$('assignScanInput').value.trim().replace(/\D/g,'');
  if(!code){alert('Barkod bulunamadı.');return}
@@ -202,7 +227,7 @@ async function lookupBookByIsbn(value){
    searchInKasif();
  }
 }
-function closeAssignScanner(){clearInterval(assignTimer);if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
+function closeAssignScanner(){clearInterval(assignTimer);if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
 async function openScanner(){
  $('scannerModal').classList.add('show');$('barcodeInput').value='';$('cameraStatus').textContent='Kamera hazırlanıyor...';try{if(!window.isSecureContext)throw new Error('secure');if(!navigator.mediaDevices?.getUserMedia)throw new Error('media');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});$('video').srcObject=stream;await $('video').play();$('cameraStatus').textContent='✅ Kamera açık. Barkodu çerçeveye getirin.';if('BarcodeDetector' in window){detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});clearInterval(scanTimer);scanTimer=setInterval(scanFrame,350)}}catch(e){$('cameraStatus').textContent='⚠️ Kamera açılamadı. HTTPS gerekir. Barkodu aşağıya elle de girebilirsiniz.'}}
 async function scanFrame(){if(!detector||!$('video').videoWidth)return;try{const c=await detector.detect($('video'));if(c[0]?.rawValue){$('barcodeInput').value=c[0].rawValue;processBarcode()}}catch(e){}}
