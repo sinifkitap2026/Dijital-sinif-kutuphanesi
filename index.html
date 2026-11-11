@@ -54,7 +54,7 @@ const BOOK_TITLES=["Kumbaramda Ne Saklı (Set)","Çantamdan Fil Çıktı","Gelec
 const STORAGE_KEY="atlas_kitaplik_v8_final";
 function makeSeed(){const people=[];Object.keys(PEOPLE).forEach(g=>PEOPLE[g].forEach((x,i)=>people.push({id:"P"+g.replace("/","")+String(i+1).padStart(2,"0"),number:String(x[0]),name:x[1],type:"Öğrenci",group:g})));people.push({id:"PADMIN",number:"",name:"AHMED BORUZA",type:"Öğretmen/Personel",group:"3/B"});const books=[];Object.keys(BRANCHES).forEach(g=>BOOK_TITLES.forEach((title,i)=>books.push({id:"B"+g.replace("/","")+String(i+1).padStart(2,"0"),no:i+1,title,author:"",publisher:"",barcode:"",isbn:"",branch:g,cover:""})));books.push({id:"B3BTEST",no:41,title:"Türkiye'nin Maarif Davası",author:"Nurettin Topçu",publisher:"Dergâh Yayınları",barcode:"9789757032182",isbn:"9789757032182",branch:"3/B",cover:""});return {settings:{loanDays:7},people,books,loans:[]}}
 let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")||makeSeed();
-let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, assignStream=null, assignDetector=null, assignTimer=null, assignReader=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
+let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, mainReader=null, mainScanLock=false, assignStream=null, assignDetector=null, assignTimer=null, assignReader=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today=()=>{const d=new Date();return d.toISOString().slice(0,10)};
 function addDays(n){const d=new Date();d.setDate(d.getDate()+Number(n||7));return d.toISOString().slice(0,10)}
@@ -242,11 +242,48 @@ async function lookupBookByIsbn(value){
    $('assignStatus').innerHTML='Otomatik katalog kaynağına ulaşılamadı. Kitabı elle kaydedebilir veya Kaşif’te ISBN arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
  }
 }
-function closeAssignScanner(){clearInterval(assignTimer);if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
+function closeAssignScanner(){clearInterval(assignTimer);assignTimer=null;if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
 async function openScanner(){
- $('scannerModal').classList.add('show');$('barcodeInput').value='';$('cameraStatus').textContent='Kamera hazırlanıyor...';try{if(!window.isSecureContext)throw new Error('secure');if(!navigator.mediaDevices?.getUserMedia)throw new Error('media');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});$('video').srcObject=stream;await $('video').play();$('cameraStatus').textContent='✅ Kamera açık. Barkodu çerçeveye getirin.';if('BarcodeDetector' in window){detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});clearInterval(scanTimer);scanTimer=setInterval(scanFrame,350)}}catch(e){$('cameraStatus').textContent='⚠️ Kamera açılamadı. HTTPS gerekir. Barkodu aşağıya elle de girebilirsiniz.'}}
-async function scanFrame(){if(!detector||!$('video').videoWidth)return;try{const c=await detector.detect($('video'));if(c[0]?.rawValue){$('barcodeInput').value=c[0].rawValue;processBarcode()}}catch(e){}}
-function closeScanner(){clearInterval(scanTimer);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('video').srcObject=null;$('scannerModal').classList.remove('show')}
+ $('scannerModal').classList.add('show');$('barcodeInput').value='';$('cameraStatus').textContent='Kamera hazırlanıyor...';mainScanLock=false;
+ try{
+   if(!window.isSecureContext)throw new Error('Kamera için güvenli HTTPS bağlantısı gerekiyor.');
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Tarayıcı kamera erişimini desteklemiyor.');
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},audio:false});
+   $('video').srcObject=stream;await $('video').play();
+   const track=stream.getVideoTracks()[0];
+   try{const caps=track.getCapabilities?.();if(caps?.focusMode?.includes('continuous'))await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
+   if('BarcodeDetector' in window){
+     try{detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});}
+     catch(e){detector=null;}
+   }
+   if(detector){
+     $('cameraStatus').textContent='✅ Kamera hazır. Barkodu çerçeveye yaklaştırın; netleşmesi için telefonu sabit tutun.';
+     clearInterval(scanTimer);scanTimer=setInterval(scanFrame,250);
+   }else if(window.ZXing?.BrowserMultiFormatReader){
+     mainReader=new ZXing.BrowserMultiFormatReader();
+     $('cameraStatus').textContent='✅ Alternatif barkod okuyucu hazır. Barkodu çerçeveye yaklaştırın.';
+     mainReader.decodeFromVideoElementContinuously($('video'),(result,error)=>{
+       if(result&&!mainScanLock){mainScanLock=true;$('barcodeInput').value=result.getText();processBarcode();}
+     });
+   }else{
+     $('cameraStatus').textContent='Kamera açık ancak otomatik okuma desteklenmiyor. Barkod numarasını aşağıya yazabilirsiniz.';
+   }
+ }catch(e){$('cameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+'. Barkod numarasını elle de girebilirsiniz.'}
+}
+async function scanFrame(){
+ if(!detector||!$('video').videoWidth||mainScanLock)return;
+ try{
+   const found=await detector.detect($('video'));
+   const hit=found.find(x=>x.rawValue&&['ean_13','ean_8','upc_a','upc_e','code_128','qr_code'].includes(x.format));
+   if(hit?.rawValue){mainScanLock=true;$('barcodeInput').value=hit.rawValue;processBarcode();}
+ }catch(e){}
+}
+function closeScanner(){
+ clearInterval(scanTimer);scanTimer=null;mainScanLock=false;
+ if(mainReader){try{mainReader.reset()}catch(e){}mainReader=null}
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+ detector=null;$('video').srcObject=null;$('scannerModal').classList.remove('show')
+}
 function processBarcode(){const code=$('barcodeInput').value.trim().replace(/\D/g,'');if(!code){alert('Barkod numarası bulunamadı.');return}let book=data.books.find(b=>b.barcode===code);if(!book){alert('Bu barkod fiziksel bir nüshaya tanımlı değil. Yönetici Kitap Yönetimi bölümünden bu nüshaya barkod atayabilir.');return}if(mode!=="admin"&&book.branch!==currentBranch){alert('Bu barkod '+book.branch+' şubesindeki nüshaya ait.');return}const loan=activeLoanForBook(book.id);closeScanner();if(loan){const p=personById(loan.personId);currentBookId=book.id;showReturnCard(loan,p,book);return}currentBookId=book.id;openLoanForm(book)}
 function openLoanForm(book){const people=visiblePeople();$('personSelect')?.remove();let modal=document.createElement('div');modal.id='loanModal';modal.className='modal show';modal.innerHTML=`<div class="sheet"><h2>📖 Kitabı Ver</h2><div class="cover-card">${coverHTML(book,'cover big')}<div><h3 style="margin:0">${esc(book.title)}</h3><div class="small">${esc(book.branch)} · Barkod: ${esc(book.barcode)}</div><button class="light" style="margin-top:8px" onclick="openCoverManager('${book.id}')">🖼️ Kapak</button></div></div><label>Öğrenci</label><select id="loanPersonSelect">${people.map(p=>`<option value="${p.id}">${esc(p.number)} – ${esc(p.name)}</option>`).join('')}</select><label>İade tarihi</label><input id="loanDue" type="date" value="${addDays(data.settings.loanDays)}"><div id="borrowWarning" style="margin-top:9px"></div><button class="success full" onclick="confirmLend()">KİTABI VER</button><button class="light full" onclick="closeLoanModal()">İPTAL</button></div>`;document.body.appendChild(modal);$('loanPersonSelect').addEventListener('change',showBorrowWarning);showBorrowWarning()}
 function showBorrowWarning(){const pid=$('loanPersonSelect')?.value;if(!pid)return;const active=activeLoansForPerson(pid);if(!active.length){$('borrowWarning').innerHTML='<div class="okbox">🟢 Bu öğrencinin üzerinde aktif kitap yok.</div>';return}const overdue=active.filter(l=>statusForLoan(l)==='overdue');$('borrowWarning').innerHTML=`<div class="dangerbox"><b>⚠️ DİKKAT: ${active.length} kitap hâlen öğrencide.</b>${overdue.length?`<br><b>${overdue.length} kitabın teslim tarihi geçmiş.</b>`:''}<div>${active.map(l=>{const b=bookById(l.bookId);return `<div class="person-chip">${esc(b?.title)} · son teslim: ${l.dueAt}</div>`}).join('')}</div><div style="margin-top:6px">Yeni kitabı yine de vermek istiyor musunuz?</div></div>`}
