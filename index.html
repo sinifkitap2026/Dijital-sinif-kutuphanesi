@@ -99,6 +99,7 @@ async function saveManagedBook(){
  const title=$('manageTitle').value.trim(),author=$('manageAuthor').value.trim(),publisher=$('managePublisher').value.trim();
  const isbn=$('manualIsbn').value.trim().replace(/\D/g,''),code=$('manualBarcode').value.trim().replace(/\D/g,'');
  const branch=managedBranch();
+ if(code && duplicateBarcode(code,currentBookId)){alert('Bu barkod başka bir fiziksel nüshaya zaten tanımlı. Her nüshanın barkodu benzersiz olmalıdır.');return}
  if(mode!=='admin'){alert('Kitap tanımlama işlemi yalnızca yönetici hesabına açıktır.');return}
  if(!title){alert('Kitap adı gerekli.');return}
  if(!branch||branch==='TÜMÜ'){alert('Önce bir şube seçin.');return}
@@ -148,7 +149,7 @@ function editManagedBook(id){
  $('manageTitle').focus({preventScroll:true});
 }
 function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLowerCase('tr-TR');const branch=managedBranch();const base=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const arr=base.filter(b=>(b.title+' '+b.author+' '+b.publisher+' '+b.barcode).toLocaleLowerCase('tr-TR').includes(q));$('barcodeList').innerHTML=arr.map(b=>`<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author||'Yazar yok')} · ${esc(b.publisher||'Yayınevi yok')}</div><div class="meta">${esc(b.branch)} · ${b.barcode?'🏷️ '+esc(b.barcode):'⚠️ Barkodsuz'}</div></div></div><button class="light" onclick="editManagedBook('${b.id}')">DÜZENLE</button></div>`).join('')}
-function duplicateBarcode(code,except){return false}
+function duplicateBarcode(code,except){const normalized=String(code||'').trim().replace(/\D/g,'');if(!normalized)return false;return data.books.some(b=>String(b.barcode||'').replace(/\D/g,'')===normalized&&String(b.id)!==String(except||''))}
 function saveAssignedBarcode(){saveManagedBook()}
 function deleteAssignedBarcode(){deleteManagedBook()}
 async function openAssignScanner(){
