@@ -118,10 +118,16 @@ async function saveManagedBook(){
    }
    const {data:cls,error:cErr}=await sbClient.from('classes').select('id').eq('name',branch).single();
    if(cErr)throw cErr;
+   // Her yeni kayıt ayrı bir fiziksel nüshadır. Aynı kitabın aynı şubede
+   // birden fazla kopyası bulunabilir; mevcut nüsha seçildiyse yalnızca onu güncelle.
    let link=current?.classBookId?{id:Number(current.classBookId)}:null;
-   if(!link){const {data,error}=await sbClient.from('class_books').select('id').eq('class_id',cls.id).eq('book_id',central.id).maybeSingle();if(error)throw error;link=data;}
-   if(!link){const {data,error}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id,barcode:code||null}).select('id').single();if(error)throw error;link=data;}
-   else if(code){const {error}=await sbClient.from('class_books').update({barcode:code}).eq('id',link.id);if(error)throw error;}
+   if(!link){
+     const {data,error}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id,barcode:code||null}).select('id').single();
+     if(error)throw error;link=data;
+   }else{
+     const {error}=await sbClient.from('class_books').update({barcode:code||null}).eq('id',link.id);
+     if(error)throw error;
+   }
    await loadFromSupabase();
    const linked=data.books.find(x=>x.classBookId===String(link.id));
    currentBookId=linked?.id||null;
