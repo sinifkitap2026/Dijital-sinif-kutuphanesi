@@ -128,9 +128,13 @@ async function saveManagedBook(){
    }
    const {data:cls,error:cErr}=await sbClient.from('classes').select('id').eq('name',branch).single();
    if(cErr)throw cErr;
-   // Her yeni kayıt ayrı bir fiziksel nüshadır. Aynı kitabın aynı şubede
-   // birden fazla kopyası bulunabilir; mevcut nüsha seçildiyse yalnızca onu güncelle.
    let link=current?.classBookId?{id:Number(current.classBookId)}:null;
+   if(!link&&isbn){
+     const {data:already,error:copyError}=await sbClient.from('class_books').select('id').eq('class_id',cls.id).eq('book_id',central.id).limit(1);
+     if(copyError)throw copyError;
+     if(already?.length){alert('Bu kitap '+branch+' şubesinde zaten kayıtlı. Aynı şubeye ikinci bir nüsha eklenmedi. Mevcut kaydı listeden seçerek düzenleyebilirsiniz.');return}
+   }
+   // Aynı ISBN farklı şubelerde ortak merkezî kitap kaydını kullanır.
    if(!link){
      const {data,error}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id,barcode:code||null}).select('id').single();
      if(error)throw error;link=data;
