@@ -21,7 +21,7 @@
  <div class="rolebox" style="margin-top:10px"><h3>🛠️ Yönetici</h3><button class="primary full" onclick="enterAdmin()">YÖNETİCİ OLARAK DEVAM ET</button></div>
 </section>
 <section id="home" class="view">
- <div class="card"><div class="toolbar"><div><b id="modeLabel">Öğretmen</b><div class="small" id="branchLabel"></div></div><button class="light" onclick="changeMode()">ŞUBE / KULLANICI DEĞİŞTİR</button><button class="light" onclick="signOut()">ÇIKIŞ</button></div></div>
+ <div class="card"><div class="toolbar"><div><b id="modeLabel">Öğretmen</b><div class="small" id="branchLabel"></div></div><button class="light" onclick="changeMode()">HESAPTAN ÇIK / GİRİŞİ DEĞİŞTİR</button><button class="light" onclick="signOut()">ÇIKIŞ</button></div></div>
  <div class="grid"><div class="card"><div id="bookCount" class="stat">0</div><div class="small">Bu şubenin kitabı</div></div><div class="card"><div id="loanCount" class="stat">0</div><div class="small">Ödünçte</div></div><div class="card"><div id="availableCount" class="stat">0</div><div class="small">Müsait</div></div><div class="card"><div id="overdueCount" class="stat">0</div><div class="small">Geciken</div></div></div>
  <button class="primary full" onclick="openScanner()">📷 ISBN / BARKOD OKUT</button>
  <div class="card" style="margin-top:10px"><b>📌 Anlık üzerinde bulunan kitaplar</b><div id="activeLoans"></div></div><div class="card" style="margin-top:10px"><b>⏰ Günlük gecikme listesi</b><div class="small">İade tarihi geçen ve henüz teslim alınmayan kitaplar.</div><div id="dailyOverdueList"></div></div>
@@ -81,7 +81,7 @@ async function syncReturnToSupabase(l){const {error}=await sbClient.from('loans'
 function enterTeacher(){alert('Öğretmen girişi için size tanımlanan e-posta ve şifreyle giriş yapın.');}
 function enterAdmin(){alert('Yönetici girişi için yönetici hesabıyla giriş yapın.');}
 function startApp(){$("start").classList.remove('active');$("nav").style.display='flex';updateHeader();showView('home');renderAll();showOverdueStartupNotice()}
-function changeMode(){$("start").classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));}
+function changeMode(){signOut()}
 function updateHeader(){$("headerSub").textContent=mode==="admin"?"Yönetici · "+currentBranch:"Öğretmen · "+currentBranch+" · "+BRANCHES[currentBranch].teacher;$('modeLabel').textContent=mode==="admin"?"🛠️ Yönetici":"👩‍🏫 Öğretmen";$('branchLabel').textContent=currentBranch+(currentBranch!=="TÜMÜ"?" · "+BRANCHES[currentBranch].teacher:"")}
 function renderAll(){if(!$('home'))return;updateHeader();const bs=visibleBooks(),loans=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&bs.includes(b)}),active=loans.filter(l=>!l.returnedAt);$('bookCount').textContent=bs.length;$('loanCount').textContent=active.length;$('availableCount').textContent=bs.length-active.length;$('overdueCount').textContent=active.filter(l=>statusForLoan(l)==='overdue').length;renderActiveLoans();renderDailyOverdueList();renderPeople();renderBooks();renderLoans();renderBarcodeAdmin();if($('reports').classList.contains('active'))renderReports()}
 function getVisibleOverdueLoans(){return data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)&&!l.returnedAt&&statusForLoan(l)==='overdue'}).sort((a,b)=>a.dueAt.localeCompare(b.dueAt))}
