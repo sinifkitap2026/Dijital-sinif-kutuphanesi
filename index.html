@@ -23,22 +23,23 @@
 <section id="home" class="view">
  <div class="card"><div class="toolbar"><div><b id="modeLabel">Öğretmen</b><div class="small" id="branchLabel"></div></div><button class="light" onclick="changeMode()">ŞUBE / KULLANICI DEĞİŞTİR</button><button class="light" onclick="signOut()">ÇIKIŞ</button></div></div>
  <div class="grid"><div class="card"><div id="bookCount" class="stat">0</div><div class="small">Bu şubenin kitabı</div></div><div class="card"><div id="loanCount" class="stat">0</div><div class="small">Ödünçte</div></div><div class="card"><div id="availableCount" class="stat">0</div><div class="small">Müsait</div></div><div class="card"><div id="overdueCount" class="stat">0</div><div class="small">Geciken</div></div></div>
- <button class="primary full" onclick="openScanner()">📷 KİTAP BARKODU / QR OKUT</button>
- <div class="card" style="margin-top:10px"><b>📌 Anlık üzerinde bulunan kitaplar</b><div id="activeLoans"></div></div>
+ <button class="primary full" onclick="openScanner()">📷 ISBN / BARKOD OKUT</button>
+ <div class="card" style="margin-top:10px"><b>📌 Anlık üzerinde bulunan kitaplar</b><div id="activeLoans"></div></div><div class="card" style="margin-top:10px"><b>⏰ Günlük gecikme listesi</b><div class="small">İade tarihi geçen ve henüz teslim alınmayan kitaplar.</div><div id="dailyOverdueList"></div></div>
 </section>
 <section id="people" class="view"><div class="card"><h2>👥 Öğrenciler</h2><input id="personSearch" placeholder="Öğrenci ara..." oninput="renderPeople()"><div id="peopleList"></div></div></section>
-<section id="books" class="view"><div class="card"><h2>📚 Kitaplar</h2><input id="bookSearch" placeholder="Kitap adı veya barkod ara..." oninput="renderBooks()"><div id="bookList"></div></div></section>
+<section id="books" class="view"><div class="card"><h2>📚 Kitaplar</h2><input id="bookSearch" placeholder="Kitap adı veya ISBN ara..." oninput="renderBooks()"><div id="bookList"></div></div></section>
 <section id="loans" class="view"><div class="card"><h2>🔄 Ödünç / İade</h2><div id="loanList"></div></div></section>
-<section id="barcodeAdmin" class="view"><div class="card"><h2>📚 Kitap Yönetimi</h2><div class="notice">Yönetici olarak barkodu okutun. Barkod merkezi kitap kataloğuna kaydedilir; seçtiğiniz şubenin kitabı da aynı katalog kaydına bağlanır. Aynı ISBN barkodu farklı şubelerde kullanılabilir.</div><div class="toolbar"><div><label>Şube</label><select id="manageBranchSelect" onchange="manageBranchChanged()"></select></div><div><label>Kitap seç</label><select id="barcodeBookSelect" onchange="loadBarcodeBook()"></select></div></div><div class="actions"><button class="primary" onclick="openAssignScanner()">📷 BARKOD OKUT</button><button class="light" onclick="newManagedBook()">➕ YENİ KİTAP</button></div><div id="assignStatus" class="notice" style="margin-top:8px">Hazır.</div><div class="formgrid"><div><label>Kitap adı</label><input id="manageTitle" placeholder="Kitap adı"></div><div><label>Yazar</label><input id="manageAuthor" placeholder="Yazar"></div><div><label>Yayınevi</label><input id="managePublisher" placeholder="Yayınevi"></div><div><label>ISBN / Barkod</label><input id="manualBarcode" inputmode="numeric" placeholder="Örn. 9789757032182"></div></div><div class="actions"><button class="success" onclick="saveManagedBook()">💾 KAYDET</button><button class="danger" onclick="deleteManagedBook()">🗑️ KİTABI SİL</button><button class="light" onclick="currentBookId?openCoverManager(currentBookId):alert('Önce bir kitap seçin veya kaydedin.')">🖼️ KAPAK</button></div><div id="manageBookState" class="small" style="margin-top:8px"></div></div><div class="card"><h3>Kitapların Yönetim Listesi</h3><input id="barcodeSearch" placeholder="Kitap adı, yazar veya barkod ara..." oninput="renderBarcodeList()"><div id="barcodeList"></div></div></section>
+<section id="barcodeAdmin" class="view"><div class="card"><h2>📚 Kitap Yönetimi</h2><div class="notice">Kitabın arka kapağındaki ISBN barkodunu okutun. Sistem ISBN ile kitap bilgilerini arar; bilgileri kontrol edip kaydedin. Aynı ISBN farklı sınıflardaki nüshalar için ortak kullanılır. Kaşif kataloğunda ayrıca arama yapabilirsiniz.</div><div class="toolbar"><div><label>Şube</label><select id="manageBranchSelect" onchange="manageBranchChanged()"></select></div><div><label>Kitap seç</label><select id="barcodeBookSelect" onchange="loadBarcodeBook()"></select></div></div><div class="actions"><button class="primary" onclick="openAssignScanner()">📷 ISBN BARKODUNU OKUT – KİTABI BUL</button><button class="light" onclick="newManagedBook()">➕ YENİ KİTAP</button></div><div class="actions"><button class="light" onclick="searchInKasif()">🏛️ KAŞİF’TE ISBN ARA</button><button class="light" onclick="lookupBookByIsbn()">🌐 ISBN İLE OTOMATİK BİLGİ GETİR</button></div><div id="assignStatus" class="notice" style="margin-top:8px">Hazır.</div><div class="formgrid"><div><label>Kitap adı</label><input id="manageTitle" placeholder="Kitap adı"></div><div><label>Yazar</label><input id="manageAuthor" placeholder="Yazar"></div><div><label>Yayınevi</label><input id="managePublisher" placeholder="Yayınevi"></div><div><label>ISBN (kitabın kimliği)</label><input id="manualIsbn" inputmode="numeric" placeholder="Örn. 9789757032182"></div><div><label>Nüsha barkodu</label><input id="manualBarcode" inputmode="numeric" placeholder="Kullanılmıyor – ISBN yeterlidir" disabled></div></div><div class="actions"><button class="success" onclick="saveManagedBook()">💾 KAYDET</button><button class="danger" onclick="deleteManagedBook()">🗑️ ŞUBE NÜSHASINI SİL</button><button class="light" onclick="currentBookId?openCoverManager(currentBookId):alert('Önce bir kitap seçin veya kaydedin.')">🖼️ KAPAK</button></div><div id="manageBookState" class="small" style="margin-top:8px"></div></div><div class="card"><h3>Kitapların Yönetim Listesi</h3><input id="barcodeSearch" placeholder="Kitap adı, yazar veya ISBN ara..." oninput="renderBarcodeList()"><div id="barcodeList"></div></div></section>
 <section id="reports" class="view"><div class="card"><h2>📊 Raporlar</h2><div class="notice">Anlık kimde, öğrenci kitap sayıları, zamanında/gecikmeli teslimler ve teslim edilmemiş kitaplar.</div><div class="toolbar"><div><label>Şube</label><select id="reportBranch" onchange="renderReports()"></select></div><div><label>Öğrenci</label><select id="reportPerson" onchange="renderReports()"></select></div></div><div class="summary" id="personSummary"></div><div id="personReport"></div><hr><h3>📚 Anlık: Hangi kitaplar kimlerde?</h3><div class="toolbar"><input id="reportLoanSearch" placeholder="Kitap / öğrenci ara..." oninput="renderReports()"><select id="reportLoanStatus" onchange="renderReports()"><option value="all">Tümü</option><option value="active">Ödünçte</option><option value="overdue">Süresi geçmiş</option></select></div><div id="activeReport"></div><hr><h3>👥 Öğrenci Genel Durumu</h3><input id="reportSearch" placeholder="Öğrenci ara..." oninput="renderReports()"><div id="classReport"></div><hr><div class="toolbar"><button class="success" onclick="exportCSV()">📥 EXCEL / CSV</button><button class="primary" onclick="printReport()">📄 PDF OLARAK KAYDET</button></div></div></section>
 </main>
 <nav id="nav"><button onclick="showView('home')">🏠 Ana</button><button onclick="showView('people')">👥 Öğrenciler</button><button onclick="showView('books')">📚 Kitaplar</button><button onclick="showView('loans')">🔄 Ödünç</button><button onclick="showView('barcodeAdmin')">📚 Kitap Yönetimi</button><button onclick="showView('reports')">📊 Rapor</button></nav>
-<div id="scannerModal" class="modal"><div class="sheet"><h2>📷 Barkod Tara</h2><div class="camera"><video id="video" playsinline muted></video><div class="scanbox"></div></div><div id="cameraStatus" class="notice" style="margin-top:8px">Kamera hazırlanıyor...</div><input id="barcodeInput" inputmode="numeric" placeholder="Barkodu elle yazabilirsiniz"><div class="actions"><button class="primary" onclick="processBarcode()">BARKODU OKU</button><button class="light" onclick="closeScanner()">KAPAT</button></div></div></div>
-<div id="assignModal" class="modal"><div class="sheet"><h2>📷 Barkod Tanımla</h2><div class="camera"><video id="assignVideo" playsinline muted></video></div><div id="assignCameraStatus" class="notice">Kamera hazırlanıyor...</div><input id="assignScanInput" inputmode="numeric" placeholder="Barkodu elle yazabilirsiniz"><div class="actions"><button class="primary" onclick="useScannedBarcode()">BARKODU OKU</button><button class="light" onclick="closeAssignScanner()">KAPAT</button></div></div></div>
+<div id="scannerModal" class="modal"><div class="sheet"><h2>📷 ISBN / Barkod Tara</h2><div class="camera"><video id="video" playsinline muted></video><div class="scanbox"></div></div><div id="cameraStatus" class="notice" style="margin-top:8px">Kamera hazırlanıyor...</div><input id="barcodeInput" inputmode="numeric" placeholder="ISBN numarasını elle yazabilirsiniz"><div class="actions"><button class="primary" onclick="processBarcode()">BARKODU OKU</button><button class="light" onclick="closeScanner()">KAPAT</button></div></div></div>
+<div id="assignModal" class="modal"><div class="sheet"><h2>📷 ISBN Oku</h2><div class="camera"><video id="assignVideo" playsinline muted></video></div><div id="assignCameraStatus" class="notice">Kamera hazırlanıyor...</div><input id="assignScanInput" inputmode="numeric" placeholder="Barkodu elle yazabilirsiniz"><div class="actions"><button class="primary" onclick="useScannedBarcode()">BARKODU OKU</button><button class="light" onclick="closeAssignScanner()">KAPAT</button></div></div></div>
 <div id="coverModal" class="modal"><div class="sheet"><h2>🖼️ Kapak Yönetimi</h2><div id="coverBookInfo"></div><div class="actions"><button class="primary" onclick="startCoverCamera()">📷 FOTOĞRAF ÇEK</button><button class="light" onclick="pickCoverFromGallery()">🖼️ GALERİDEN SEÇ</button></div><input id="coverFile" type="file" accept="image/*" class="hidden" onchange="handleCoverFile(event)"><div id="coverPreviewArea" style="margin-top:10px"></div><button class="danger full" onclick="removeCover()">🗑️ KAPAĞI KALDIR</button><button class="light full" onclick="closeCoverModal()">KAPAT</button></div></div>
 <div id="coverCameraModal" class="modal"><div class="sheet"><h2>📷 Kapak Fotoğrafı Çek</h2><video id="coverVideo" playsinline muted style="width:100%;border-radius:14px;background:#111"></video><div class="notice">Kapağın tamamını mümkün olduğunca düz ve aydınlık şekilde kadraja alın.</div><div class="actions"><button class="primary" onclick="captureCover()">FOTOĞRAFI ÇEK</button><button class="light" onclick="closeCoverCamera()">KAPAT</button></div><canvas id="coverCanvas" class="hidden"></canvas></div></div>
 <div id="cropModal" class="modal"><div class="sheet"><h2>✂️ Kapağı Kırp</h2><div class="crop-stage" id="cropStage"><img id="cropImage"></div><input id="zoomRange" class="range" type="range" min="0.4" max="3" step="0.01" value="1" oninput="updateCrop()"><div class="small">Fotoğrafı sürükleyin, yakınlaştırın ve beyaz çerçevenin içinde kapağın tamamını bırakın.</div><div class="actions" style="margin-top:10px"><button class="light" onclick="cancelCrop()">İPTAL</button><button class="primary" onclick="finishCrop()">KIRPMAYI TAMAMLA</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 const SUPABASE_URL="https://lmdjsfsgoevwtpiavmmn.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Gh-0iOMJVVZR9RSYnX3flA_v6bCXAwh";
@@ -53,10 +54,13 @@ const BOOK_TITLES=["Kumbaramda Ne Saklı (Set)","Çantamdan Fil Çıktı","Gelec
 const STORAGE_KEY="atlas_kitaplik_v8_final";
 function makeSeed(){const people=[];Object.keys(PEOPLE).forEach(g=>PEOPLE[g].forEach((x,i)=>people.push({id:"P"+g.replace("/","")+String(i+1).padStart(2,"0"),number:String(x[0]),name:x[1],type:"Öğrenci",group:g})));people.push({id:"PADMIN",number:"",name:"AHMED BORUZA",type:"Öğretmen/Personel",group:"3/B"});const books=[];Object.keys(BRANCHES).forEach(g=>BOOK_TITLES.forEach((title,i)=>books.push({id:"B"+g.replace("/","")+String(i+1).padStart(2,"0"),no:i+1,title,author:"",publisher:"",barcode:"",isbn:"",branch:g,cover:""})));books.push({id:"B3BTEST",no:41,title:"Türkiye'nin Maarif Davası",author:"Nurettin Topçu",publisher:"Dergâh Yayınları",barcode:"9789757032182",isbn:"9789757032182",branch:"3/B",cover:""});return {settings:{loanDays:7},people,books,loans:[]}}
 let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")||makeSeed();
-let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, assignStream=null, assignDetector=null, assignTimer=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
+let isbnCandidates=[];
+let dbClasses=[];
+let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, mainReader=null, mainScanLock=false, assignStream=null, assignDetector=null, assignTimer=null, assignReader=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const today=()=>{const d=new Date();return d.toISOString().slice(0,10)};
-function addDays(n){const d=new Date();d.setDate(d.getDate()+Number(n||7));return d.toISOString().slice(0,10)}
+const localDateString=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`};
+const today=()=>localDateString(new Date());
+function addDays(n){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+Number(n||7));return localDateString(d)}
 function save(){renderAll()}
 function personById(id){return data.people.find(p=>p.id===id)} function bookById(id){return data.books.find(b=>b.id===id)}
 function branchBooks(g){return data.books.filter(b=>b.branch===g)}
@@ -64,87 +68,90 @@ function visiblePeople(){return mode==="admin"?data.people.filter(p=>p.type==="�
 function visibleBooks(){return mode==="admin"?(currentBranch==="TÜMÜ"?data.books:branchBooks(currentBranch)):branchBooks(currentBranch)}
 function activeLoanForBook(id){return data.loans.find(l=>l.bookId===id&&!l.returnedAt)}
 function activeLoansForPerson(pid){return data.loans.filter(l=>l.personId===pid&&!l.returnedAt)}
-function statusForLoan(l){if(l.returnedAt)return new Date(l.returnedAt)>new Date(l.dueAt)?"late":"returned";return new Date(l.dueAt)<new Date(today())?"overdue":"active"}
+function statusForLoan(l){if(l.returnedAt)return String(l.returnedAt)>String(l.dueAt)?"late":"returned";return String(l.dueAt)<today()?"overdue":"active"}
 function statusText(l){const s=statusForLoan(l);return s==="returned"?"İade edildi":s==="late"?"Gecikmeli teslim":s==="overdue"?"Teslim edilmedi / gecikti":"Ödünçte"}
 function coverHTML(b,cls="cover"){return b?.cover?`<img class="${cls}" src="${esc(b.cover)}" alt="Kapak">`:`<div class="${cls}" style="display:flex;align-items:center;justify-content:center;font-size:10px;color:#667">Kapak yok</div>`}
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active','printable'));$(id).classList.add('active');if(id==='reports')renderReports();if(id==='books')renderBooks();if(id==='people')renderPeople();if(id==='loans')renderLoans();if(id==='barcodeAdmin')renderBarcodeAdmin()}
 async function signIn(){const email=$('authEmail').value.trim(),password=$('authPassword').value;if(!email||!password){$('authStatus').textContent='E-posta ve şifre gerekli.';return} $('authStatus').textContent='Giriş yapılıyor...';const {data,error}=await sbClient.auth.signInWithPassword({email,password});if(error){$('authStatus').textContent='Giriş başarısız: '+error.message;return}await applyProfile(data.user)}
-async function applyProfile(user){const {data:p,error}=await sbClient.from('profiles').select('*').eq('id',user.id).single();if(error||!p){$('authStatus').textContent='Kullanıcı profili bulunamadı. Supabase profiles tablosuna bu kullanıcı için profil eklenmeli.';await sbClient.auth.signOut();return}mode=p.role==='admin'?'admin':'teacher';currentBranch=p.role==='admin'?'TÜMÜ':Object.keys(BRANCHES).find(x=>String(BRANCHES[x].teacher).toLocaleLowerCase('tr-TR')===String(p.full_name).toLocaleLowerCase('tr-TR'))||({1:'3/A',2:'3/B',3:'3/C'}[p.class_id]||'3/B');sessionStorage.setItem('atlasMode',mode);sessionStorage.setItem('atlasBranch',currentBranch);$('authScreen').style.display='none';await loadFromSupabase();startApp()}
+async function applyProfile(user){const {data:p,error}=await sbClient.from('profiles').select('*').eq('id',user.id).single();if(error||!p){$('authStatus').textContent='Kullanıcı profili bulunamadı. Supabase profiles tablosuna bu kullanıcı için profil eklenmeli.';await sbClient.auth.signOut();return}mode=p.role==='admin'?'admin':'teacher';if(mode==='admin'){currentBranch='TÜMÜ'}else{let assigned=Object.keys(BRANCHES).find(x=>String(BRANCHES[x].teacher).toLocaleLowerCase('tr-TR')===String(p.full_name).toLocaleLowerCase('tr-TR'));if(p.class_id){const {data:c,error:cError}=await sbClient.from('classes').select('name').eq('id',p.class_id).single();if(cError||!c||!BRANCHES[c.name]){ $('authStatus').textContent='Öğretmen hesabının şube tanımı hatalı. Yönetici profildeki şube bilgisini kontrol etmeli.';await sbClient.auth.signOut();return}assigned=c.name}if(!assigned){$('authStatus').textContent='Öğretmen hesabına şube atanmamış. Yönetici Supabase profiles tablosundaki class_id bilgisini tanımlamalı.';await sbClient.auth.signOut();return}currentBranch=assigned}sessionStorage.setItem('atlasMode',mode);sessionStorage.setItem('atlasBranch',currentBranch);$('authScreen').style.display='none';try{await loadFromSupabase();startApp()}catch(e){$('authScreen').style.display='flex';$('authStatus').textContent='Veriler yüklenemedi: '+(e.message||e);await sbClient.auth.signOut()}}
 async function signOut(){await sbClient.auth.signOut();location.reload()}
-async function loadFromSupabase(){const [cl,st,bk,cb,ln]=await Promise.all([sbClient.from('classes').select('*'),sbClient.from('students').select('*'),sbClient.from('books').select('*'),sbClient.from('class_books').select('*'),sbClient.from('loans').select('*')]);const err=[cl,st,bk,cb,ln].find(x=>x.error);if(err)throw err.error;const classes=cl.data,students=st.data,books=bk.data,classBooks=cb.data,loans=ln.data;const clsMap=Object.fromEntries(classes.map(c=>[c.id,c]));data.people=students.map(x=>({id:String(x.id),number:String(x.student_number??''),name:x.name,type:'Öğrenci',group:clsMap[x.class_id]?.name||''}));data.books=classBooks.map(x=>{const b=books.find(y=>y.id===x.book_id),c=clsMap[x.class_id];return {id:String(x.id),bookId:String(x.book_id),classBookId:String(x.id),no:b?.id??x.id,title:b?.title||'',author:b?.author||'',publisher:b?.publisher||'',barcode:b?.barcode||'',isbn:b?.isbn||'',branch:c?.name||'',cover:''}});data.loans=loans.map(l=>({id:String(l.id),bookId:String(l.class_book_id),personId:String(l.student_id),borrowedAt:l.loan_date,dueAt:l.due_date,returnedAt:l.return_date}));renderAll()}
+async function loadFromSupabase(){const [cl,st,bk,cb,ln]=await Promise.all([sbClient.from('classes').select('*'),sbClient.from('students').select('*'),sbClient.from('books').select('*'),sbClient.from('class_books').select('*'),sbClient.from('loans').select('*')]);const err=[cl,st,bk,cb,ln].find(x=>x.error);if(err)throw err.error;const classes=cl.data,students=st.data,books=bk.data,classBooks=cb.data,loans=ln.data;dbClasses=classes;const clsMap=Object.fromEntries(classes.map(c=>[c.id,c]));data.people=students.map(x=>({id:String(x.id),number:String(x.student_number??''),name:x.name,type:'Öğrenci',group:clsMap[x.class_id]?.name||''}));data.books=classBooks.map(x=>{const b=books.find(y=>y.id===x.book_id),c=clsMap[x.class_id];return {id:String(x.id),bookId:String(x.book_id),classBookId:String(x.id),no:b?.id??x.id,title:b?.title||'',author:b?.author||'',publisher:b?.publisher||'',barcode:x.barcode||'',isbn:b?.isbn||'',branch:c?.name||'',cover:b?.cover_path?sbClient.storage.from('book-covers').getPublicUrl(b.cover_path).data.publicUrl:(b?.cover_url||'')}});data.loans=loans.map(l=>({id:String(l.id),bookId:String(l.class_book_id),personId:String(l.student_id),borrowedAt:l.loan_date,dueAt:l.due_date,returnedAt:l.return_date}));renderAll()}
 async function syncLoanToSupabase(l){const {error}=await sbClient.from('loans').insert({class_book_id:Number(l.bookId),student_id:Number(l.personId),loan_date:l.borrowedAt,due_date:l.dueAt,status:'borrowed'});if(error)throw error}
 async function syncReturnToSupabase(l){const {error}=await sbClient.from('loans').update({return_date:l.returnedAt,status:'returned'}).eq('id',Number(l.id));if(error)throw error}
 function enterTeacher(){alert('Öğretmen girişi için size tanımlanan e-posta ve şifreyle giriş yapın.');}
 function enterAdmin(){alert('Yönetici girişi için yönetici hesabıyla giriş yapın.');}
-function startApp(){$("start").classList.remove('active');$("nav").style.display='flex';updateHeader();showView('home');renderAll()}
+function startApp(){$("start").classList.remove('active');$("nav").style.display='flex';updateHeader();showView('home');renderAll();showOverdueStartupNotice()}
 function changeMode(){$("start").classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));}
 function updateHeader(){$("headerSub").textContent=mode==="admin"?"Yönetici · "+currentBranch:"Öğretmen · "+currentBranch+" · "+BRANCHES[currentBranch].teacher;$('modeLabel').textContent=mode==="admin"?"🛠️ Yönetici":"👩‍🏫 Öğretmen";$('branchLabel').textContent=currentBranch+(currentBranch!=="TÜMÜ"?" · "+BRANCHES[currentBranch].teacher:"")}
-function renderAll(){if(!$('home'))return;updateHeader();const bs=visibleBooks(),loans=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&bs.includes(b)}),active=loans.filter(l=>!l.returnedAt);$('bookCount').textContent=bs.length;$('loanCount').textContent=active.length;$('availableCount').textContent=bs.length-active.length;$('overdueCount').textContent=active.filter(l=>statusForLoan(l)==='overdue').length;renderActiveLoans();renderPeople();renderBooks();renderLoans();renderBarcodeAdmin();if($('reports').classList.contains('active'))renderReports()}
+function renderAll(){if(!$('home'))return;updateHeader();const bs=visibleBooks(),loans=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&bs.includes(b)}),active=loans.filter(l=>!l.returnedAt);$('bookCount').textContent=bs.length;$('loanCount').textContent=active.length;$('availableCount').textContent=bs.length-active.length;$('overdueCount').textContent=active.filter(l=>statusForLoan(l)==='overdue').length;renderActiveLoans();renderDailyOverdueList();renderPeople();renderBooks();renderLoans();renderBarcodeAdmin();if($('reports').classList.contains('active'))renderReports()}
+function getVisibleOverdueLoans(){return data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)&&!l.returnedAt&&statusForLoan(l)==='overdue'}).sort((a,b)=>a.dueAt.localeCompare(b.dueAt))}
+function renderDailyOverdueList(){const box=$('dailyOverdueList');if(!box)return;const overdue=getVisibleOverdueLoans();box.innerHTML=overdue.length?overdue.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),days=Math.max(1,Math.floor((new Date(today()+'T00:00:00')-new Date(l.dueAt+'T00:00:00'))/86400000));return '<div class="item"><div><div class="title">'+esc(b?.title||'Kitap')+'</div><div class="meta">'+esc(p?.name||'Öğrenci')+' · '+esc(b?.branch||'')+' · Son teslim: '+esc(l.dueAt)+'</div><div class="overdue">'+days+' gündür gecikmiş</div></div><button class="success" onclick="returnBook(\''+l.id+'\')">GERİ AL</button></div>'}).join(''):'<div class="okbox" style="margin-top:8px">Gecikmiş kitap yok. Harika! 🎉</div>'}
+function showOverdueStartupNotice(){const overdue=getVisibleOverdueLoans();if(!overdue.length)return;const lines=overdue.map(l=>{const b=bookById(l.bookId),p=personById(l.personId);return (p?.name||'Öğrenci')+' — '+(b?.title||'Kitap')+' (son teslim: '+l.dueAt+')'});alert('⏰ İADE SÜRESİ GEÇEN KİTAPLAR: '+overdue.length+' adet\\n\\n'+lines.join('\\n')+'\\n\\nGünlük gecikme listesi ana sayfada yer alıyor.');}
 function renderActiveLoans(){const arr=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)&&!l.returnedAt}).sort((a,b)=>a.dueAt.localeCompare(b.dueAt));$('activeLoans').innerHTML=arr.length?arr.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),s=statusForLoan(l);return `<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(p?.name||'')} · ${esc(b.branch)} · Son teslim: ${l.dueAt}</div><div class="${s==='overdue'?'overdue':''}">${statusText(l)}</div></div></div><button class="success" onclick="returnBook('${l.id}')">GERİ AL</button></div>`}).join(''):`<div class="small" style="padding:12px 0">Şu anda öğrencilerde kitap yok.</div>`}
 function renderPeople(){const q=($('personSearch')?.value||'').toLocaleLowerCase('tr-TR');const arr=visiblePeople().filter(p=>(p.name+' '+p.number).toLocaleLowerCase('tr-TR').includes(q));$('peopleList').innerHTML=arr.map(p=>{const active=activeLoansForPerson(p.id);return `<div class="item"><div><div class="title">${esc(p.name)}</div><div class="meta">No: ${esc(p.number)} · Üzerinde: ${active.length}</div></div><span class="badge">${esc(p.group)}</span></div>`}).join('')}
-function renderBooks(){const q=($('bookSearch')?.value||'').toLocaleLowerCase('tr-TR');const arr=visibleBooks().filter(b=>(b.title+' '+b.barcode).toLocaleLowerCase('tr-TR').includes(q));$('bookList').innerHTML=arr.map(b=>{const l=activeLoanForBook(b.id);return `<div class="item"><div class="bookrow">${coverHTML(b)}<div><div class="title">${b.no}. ${esc(b.title)}</div><div class="meta">${esc(b.branch)} · ${b.barcode?'🏷️ '+esc(b.barcode):'⚠️ Barkod tanımlı değil'} · ${l?'Ödünçte':'Müsait'}</div></div></div><button class="light" onclick="openCoverManager('${b.id}')">🖼️ Kapak</button></div>`}).join('')}
+function renderBooks(){const q=($('bookSearch')?.value||'').toLocaleLowerCase('tr-TR');const arr=visibleBooks().filter(b=>(b.title+' '+b.isbn).toLocaleLowerCase('tr-TR').includes(q));$('bookList').innerHTML=arr.map(b=>{const l=activeLoanForBook(b.id);return `<div class="item"><div class="bookrow">${coverHTML(b)}<div><div class="title">${b.no}. ${esc(b.title)}</div><div class="meta">${esc(b.branch)} · ${b.isbn?'ISBN: '+esc(b.isbn):'⚠️ ISBN tanımlı değil'} · ${l?'Ödünçte':'Müsait'}</div></div></div><button class="light" onclick="openCoverManager('${b.id}')">🖼️ Kapak</button></div>`}).join('')}
 function renderLoans(){const arr=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)}).sort((a,b)=>b.borrowedAt.localeCompare(a.borrowedAt));$('loanList').innerHTML=arr.length?arr.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),s=statusForLoan(l);return `<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(p?.name)} · ${l.borrowedAt} → ${l.returnedAt||('son: '+l.dueAt)}</div><div class="${s==='overdue'?'overdue':s==='late'?'late':s==='returned'?'ok':''}">${statusText(l)}</div></div></div>${!l.returnedAt?`<button class="success" onclick="returnBook('${l.id}')">GERİ AL</button>`:''}</div>`}).join(''):`<div class="small">Henüz ödünç/iade kaydı yok.</div>`}
-function renderBarcodeAdmin(){populateManageBranches();const branch=managedBranch();const bs=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const sel=$('barcodeBookSelect');if(!sel)return;const old=sel.value;sel.innerHTML=bs.map(b=>`<option value="${b.id}">${esc(b.title)} — ${esc(b.branch)}${b.barcode?' · '+esc(b.barcode):' · barkodsuz'}</option>`).join('');if(bs.some(b=>b.id===old))sel.value=old;else if(bs[0])sel.value=bs[0].id;loadBarcodeBook();renderBarcodeList()}
-function populateManageBranches(){const sel=$('manageBranchSelect');if(!sel)return;const old=sel.value;const branches=mode==='admin'?Object.keys(BRANCHES):[currentBranch];sel.innerHTML=branches.map(g=>`<option value="${g}">${g} · ${esc(BRANCHES[g].teacher)}</option>`).join('');if(branches.includes(old))sel.value=old;else if(branches.includes(currentBranch))sel.value=currentBranch;else sel.value=branches[0]||''}
+function renderBarcodeAdmin(){populateManageBranches();const branch=managedBranch();const bs=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const sel=$('barcodeBookSelect');if(!sel)return;const old=sel.value;sel.innerHTML=bs.map(b=>`<option value="${b.id}">${esc(b.title)} — ${esc(b.branch)}${b.isbn?' · ISBN '+esc(b.isbn):' · ISBN yok'}</option>`).join('');if(bs.some(b=>b.id===old))sel.value=old;else if(bs[0])sel.value=bs[0].id;loadBarcodeBook();renderBarcodeList()}
+function populateManageBranches(){const sel=$('manageBranchSelect');if(!sel)return;const old=sel.value;const branches=mode==='admin'?(dbClasses.length?dbClasses.map(c=>c.name):Object.keys(BRANCHES)):[currentBranch];sel.innerHTML=branches.map(g=>{const c=dbClasses.find(x=>x.name===g);const teacher=BRANCHES[g]?.teacher||c?.teacher_name||'Şube';return `<option value="${esc(g)}">${esc(g)} · ${esc(teacher)}</option>`}).join('');if(branches.includes(old))sel.value=old;else if(branches.includes(currentBranch))sel.value=currentBranch;else sel.value=branches[0]||''}
 function managedBranch(){return $('manageBranchSelect')?.value||currentBranch}
 function manageBranchChanged(){renderBarcodeAdmin()}
-function loadBarcodeBook(){const b=bookById($('barcodeBookSelect')?.value);if(!b){clearManagedForm();return}currentBookId=b.id;$('manageTitle').value=b.title||'';$('manageAuthor').value=b.author||'';$('managePublisher').value=b.publisher||'';$('manualBarcode').value=b.barcode||b.isbn||'';$('assignStatus').innerHTML=b.barcode?`🏷️ Mevcut barkod: <b>${esc(b.barcode)}</b>`:'⚠️ Henüz barkod tanımlı değil.';$('manageBookState').textContent=`${b.branch} · Kayıt No: ${b.no} · ${activeLoanForBook(b.id)?'Ödünçte':'Müsait'}`}
-function clearManagedForm(){$('manageTitle').value='';$('manageAuthor').value='';$('managePublisher').value='';$('manualBarcode').value='';$('assignStatus').textContent='Yeni kitap kaydı hazırlanıyor.';$('manageBookState').textContent='Henüz kayıt seçilmedi.'}
+function loadBarcodeBook(){const b=bookById($('barcodeBookSelect')?.value);if(!b){clearManagedForm();return}currentBookId=b.id;$('manageTitle').value=b.title||'';$('manageAuthor').value=b.author||'';$('managePublisher').value=b.publisher||'';$('manualIsbn').value=b.isbn||'';$('manualBarcode').value='';$('assignStatus').innerHTML=b.isbn?`📘 ISBN: <b>${esc(b.isbn)}</b> · Bu ISBN kitap ve sınıf nüshasını tanımlar.`:'⚠️ Bu kayıtta ISBN eksik. Yeni eklemelerde ISBN-13 zorunludur.';$('manageBookState').textContent=`${b.branch} · Kayıt No: ${b.no} · ${activeLoanForBook(b.id)?'Ödünçte':'Müsait'}`}
+function clearManagedForm(){$('manageTitle').value='';$('manageAuthor').value='';$('managePublisher').value='';$('manualIsbn').value='';$('manualBarcode').value='';$('assignStatus').textContent='Yeni kitap kaydı hazırlanıyor. Barkod olmadan da kaydedebilirsiniz.';$('manageBookState').textContent='Henüz kayıt seçilmedi.'}
 function newManagedBook(){currentBookId=null;clearManagedForm();const branch=managedBranch();$('manageBookState').textContent=`Yeni kitap · ${branch}`}
 async function saveManagedBook(){
- const title=$('manageTitle').value.trim(),author=$('manageAuthor').value.trim(),publisher=$('managePublisher').value.trim(),code=$('manualBarcode').value.trim().replace(/\D/g,'');
+ const title=$('manageTitle').value.trim(),author=$('manageAuthor').value.trim(),publisher=$('managePublisher').value.trim();
+ const isbn=$('manualIsbn').value.trim().replace(/\D/g,''),code='';
  const branch=managedBranch();
+ 
  if(mode!=='admin'){alert('Kitap tanımlama işlemi yalnızca yönetici hesabına açıktır.');return}
  if(!title){alert('Kitap adı gerekli.');return}
+ if(isbn&&!isValidIsbn13(isbn)){alert('ISBN-13 numarası geçersiz. Lütfen 13 rakamı ve kontrol basamağını doğrulayın.');return}
+ if(!currentBookId&&!isbn){alert('Yeni kitap kaydı için ISBN-13 zorunludur. Kitabın arka kapağındaki ISBN barkodunu okutun.');return}
  if(!branch||branch==='TÜMÜ'){alert('Önce bir şube seçin.');return}
- if(!code){alert('Önce kitabın barkodunu okutun veya barkodu girin.');return}
  try{
-   // Barkod merkezî kataloğu tanımlar; mevcut kitap düzenlenirken şube bağlantısı korunur.
-   let central=null;
    const current=currentBookId ? bookById(currentBookId) : null;
-   const currentCentralId=current?.bookId ? Number(current.bookId) : null;
-   const {data:existing,error:findErr}=await sbClient.from('books').select('*').eq('barcode',code).maybeSingle();
-   if(findErr)throw findErr;
-
-   if(currentCentralId && (!existing || Number(existing.id)===currentCentralId)){
-      const {data:updated,error:uErr}=await sbClient.from('books')
-        .update({title,author:author||null,publisher:publisher||null,isbn:code,barcode:code})
-        .eq('id',currentCentralId).select().single();
-      if(uErr)throw uErr;
-      central=updated;
-   }else if(existing){
-      central=existing;
-      const {error:uErr}=await sbClient.from('books')
-        .update({title,author:author||null,publisher:publisher||null,isbn:code})
-        .eq('id',central.id);
-      if(uErr)throw uErr;
+   let central=null;
+   if(current?.bookId){
+     const {data:updated,error}=await sbClient.from('books').update({title,author:author||null,publisher:publisher||null,isbn:isbn||null}).eq('id',Number(current.bookId)).select().single();
+     if(error)throw error; central=updated;
    }else{
-      const {data:created,error:iErr}=await sbClient.from('books')
-        .insert({title,author:author||null,publisher:publisher||null,isbn:code,barcode:code})
-        .select().single();
-      if(iErr)throw iErr;
-      central=created;
+     let existing=null;
+     if(isbn){const {data,error}=await sbClient.from('books').select('*').eq('isbn',isbn).maybeSingle();if(error)throw error;existing=data;}
+     if(existing){
+       const sameTitle=normalizePublisher(existing.title)===normalizePublisher(title);
+       if(!sameTitle){alert('Bu ISBN merkezî katalogda “'+existing.title+'” adıyla kayıtlı. Aynı ISBN ile farklı bir kitap adı kaydedilemez. Kitabın ISBN’sini ve baskısını kontrol edin.');return}
+       central=existing;
+     }else{
+       const {data,error}=await sbClient.from('books').insert({title,author:author||null,publisher:publisher||null,isbn:isbn||null}).select().single();
+       if(error)throw error;central=data;
+     }
    }
-
    const {data:cls,error:cErr}=await sbClient.from('classes').select('id').eq('name',branch).single();
    if(cErr)throw cErr;
-   const {data:link,error:linkErr}=await sbClient.from('class_books').select('id')
-     .eq('class_id',cls.id).eq('book_id',central.id).maybeSingle();
-   if(linkErr)throw linkErr;
+   let link=current?.classBookId?{id:Number(current.classBookId)}:null;
+   if(!link&&isbn){
+     const {data:already,error:copyError}=await sbClient.from('class_books').select('id').eq('class_id',cls.id).eq('book_id',central.id).limit(1);
+     if(copyError)throw copyError;
+     if(already?.length){alert('Bu kitap '+branch+' şubesinde zaten kayıtlı. Aynı şubeye ikinci bir nüsha eklenmedi. Mevcut kaydı listeden seçerek düzenleyebilirsiniz.');return}
+   }
+   // Aynı ISBN farklı şubelerde ortak merkezî kitap kaydını kullanır.
    if(!link){
-      const {error:cbErr}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id});
-      if(cbErr)throw cbErr;
+     const {data,error}=await sbClient.from('class_books').insert({class_id:cls.id,book_id:central.id,barcode:code||null}).select('id').single();
+     if(error)throw error;link=data;
+   }else{
+     const {error}=await sbClient.from('class_books').update({barcode:code||null}).eq('id',link.id);
+     if(error)throw error;
    }
    await loadFromSupabase();
-   const linked=data.books.find(x=>x.bookId===String(central.id)&&x.branch===branch);
+   const linked=data.books.find(x=>x.classBookId===String(link.id));
    currentBookId=linked?.id||null;
    renderBarcodeAdmin();
    if(currentBookId){$('barcodeBookSelect').value=currentBookId;loadBarcodeBook();}
-   $('assignStatus').innerHTML=`✅ <b>${esc(central.title)}</b> kaydedildi. Barkod: <b>${esc(code)}</b> · Şube: <b>${esc(branch)}</b>`;
-   alert('Kitap kaydedildi ve seçilen şubeye bağlandı.');
+   $('assignStatus').innerHTML=`✅ <b>${esc(central.title)}</b> için ${esc(branch)} şube nüshası kaydedildi. ISBN: <b>${esc(isbn||'tanımlanmadı')}</b>. Ayrı nüsha barkodu kullanılmıyor.`;
+   alert('Kitap kaydedildi. Ödünç ve iade işlemlerinde ISBN kullanılacak.');
  }catch(e){alert('Kitap kaydedilemedi: '+(e.message||e));}
 }
-function deleteManagedBook(){const b=bookById(currentBookId);if(!b){alert('Silinecek kitap seçili değil.');return}if(data.loans.some(l=>l.bookId===b.id)){alert('Bu kitabın ödünç/iade geçmişi var. Raporların bozulmaması için silinemez.');return}if(!confirm(`“${b.title}” kitabını silmek istediğinize emin misiniz?`))return;data.books=data.books.filter(x=>x.id!==b.id);currentBookId=null;save();renderBarcodeAdmin();clearManagedForm();alert('Kitap silindi.')}
+async function deleteManagedBook(){const b=bookById(currentBookId);if(!b){alert('Silinecek şube nüshası seçili değil.');return}if(data.loans.some(l=>l.bookId===b.id)){alert('Bu nüshanın ödünç/iade geçmişi var. Raporların bozulmaması için silinemez.');return}if(!confirm('“'+b.title+'” kitabının '+b.branch+' şubesindeki nüsha bağlantısını silmek istiyor musunuz? Merkezî kitap kaydı korunur.'))return;try{const {error}=await sbClient.from('class_books').delete().eq('id',Number(b.classBookId));if(error)throw error;currentBookId=null;await loadFromSupabase();clearManagedForm();alert('Şube nüshası bağlantısı silindi. Merkezî katalog kaydı korundu.');}catch(e){alert('Nüsha silinemedi: '+(e.message||e));}}
 
 function editManagedBook(id){
  const b=bookById(String(id));
@@ -162,40 +169,166 @@ function editManagedBook(id){
  $('manageTitle').scrollIntoView({behavior:'smooth',block:'center'});
  $('manageTitle').focus({preventScroll:true});
 }
-function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLowerCase('tr-TR');const branch=managedBranch();const base=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const arr=base.filter(b=>(b.title+' '+b.author+' '+b.publisher+' '+b.barcode).toLocaleLowerCase('tr-TR').includes(q));$('barcodeList').innerHTML=arr.map(b=>`<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author||'Yazar yok')} · ${esc(b.publisher||'Yayınevi yok')}</div><div class="meta">${esc(b.branch)} · ${b.barcode?'🏷️ '+esc(b.barcode):'⚠️ Barkodsuz'}</div></div></div><button class="light" onclick="editManagedBook('${b.id}')">DÜZENLE</button></div>`).join('')}
-function duplicateBarcode(code,except){return false}
+function renderBarcodeList(){const q=($('barcodeSearch')?.value||'').toLocaleLowerCase('tr-TR');const branch=managedBranch();const base=mode==='admin'&&branch==='TÜMÜ'?data.books:branchBooks(branch);const arr=base.filter(b=>(b.title+' '+b.author+' '+b.publisher+' '+b.isbn).toLocaleLowerCase('tr-TR').includes(q));$('barcodeList').innerHTML=arr.map(b=>`<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author||'Yazar yok')} · ${esc(b.publisher||'Yayınevi yok')}</div><div class="meta">${esc(b.branch)} · ${b.isbn?'ISBN: '+esc(b.isbn):'⚠️ ISBN eksik'}</div></div></div><button class="light" onclick="editManagedBook('${b.id}')">DÜZENLE</button></div>`).join('')}
+function duplicateBarcode(code,except){const normalized=String(code||'').trim().replace(/\D/g,'');if(!normalized)return false;return data.books.some(b=>String(b.barcode||'').replace(/\D/g,'')===normalized&&String(b.id)!==String(except||''))}
 function saveAssignedBarcode(){saveManagedBook()}
 function deleteAssignedBarcode(){deleteManagedBook()}
-async function openAssignScanner(){const m=$('assignModal');m.classList.add('show');$('assignScanInput').value='';try{if(!window.isSecureContext)throw new Error('secure');if(!navigator.mediaDevices?.getUserMedia)throw new Error('media');assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});$('assignVideo').srcObject=assignStream;await $('assignVideo').play();$('assignCameraStatus').textContent='✅ Kamera açık.';if('BarcodeDetector' in window){assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});clearInterval(assignTimer);assignTimer=setInterval(async()=>{try{const c=await assignDetector.detect($('assignVideo'));if(c[0]?.rawValue){$('assignScanInput').value=c[0].rawValue;useScannedBarcode()}}catch(e){}},350)}}catch(e){$('assignCameraStatus').textContent='⚠️ Kamera kullanılamadı. Barkodu aşağıya elle yazabilirsiniz.'}}
+async function openAssignScanner(){
+ const m=$('assignModal');m.classList.add('show');$('assignScanInput').value='';$('assignCameraStatus').textContent='Kamera hazırlanıyor...';
+ try{
+   if(!window.isSecureContext)throw new Error('Bu sayfada kamera için HTTPS gerekiyor.');
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Tarayıcı kamera erişimini desteklemiyor.');
+   assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+   $('assignVideo').srcObject=assignStream;await $('assignVideo').play();
+   if('BarcodeDetector' in window){
+     assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});
+     $('assignCameraStatus').textContent='✅ Kamera açık. ISBN barkodunu kameraya gösterin.';
+     clearInterval(assignTimer);
+     assignTimer=setInterval(async()=>{try{const found=await assignDetector.detect($('assignVideo'));if(found[0]?.rawValue){clearInterval(assignTimer);$('assignScanInput').value=found[0].rawValue;await useScannedBarcode()}}catch(e){}},300);
+   }else if(window.ZXing?.BrowserMultiFormatReader){
+     assignReader=new ZXing.BrowserMultiFormatReader();
+     $('assignCameraStatus').textContent='✅ Alternatif barkod okuyucu hazır. ISBN barkodunu kameraya gösterin.';
+     assignReader.decodeFromVideoElementContinuously($('assignVideo'),async(result,error)=>{
+       if(result){assignReader.reset();$('assignScanInput').value=result.getText();await useScannedBarcode()}
+     });
+   }else{
+     $('assignCameraStatus').textContent='Kamera açık ancak otomatik barkod okuma bu tarayıcıda desteklenmiyor. ISBN numarasını aşağıya yazabilirsiniz.';
+   }
+ }catch(e){
+   $('assignCameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+' Barkod numarasını aşağıya da yazabilirsiniz.';
+ }
+}
 async function useScannedBarcode(){
  const code=$('assignScanInput').value.trim().replace(/\D/g,'');
  if(!code){alert('Barkod bulunamadı.');return}
- if(mode!=='admin'){alert('Barkod tanımlama yalnızca yönetici hesabına açıktır.');return}
- try{
-   const {data:found,error}=await sbClient.from('books').select('*').eq('barcode',code).maybeSingle();
-   if(error)throw error;
-   if(found){
-      // Existing central catalog record: load its title/details and let admin choose the class.
-      $('manageTitle').value=found.title||'';
-      $('manageAuthor').value=found.author||'';
-      $('managePublisher').value=found.publisher||'';
-      $('manualBarcode').value=found.barcode||code;
-      $('assignStatus').innerHTML=`✅ Kayıt bulundu: <b>${esc(found.title)}</b><br>Barkod: <b>${esc(code)}</b><br>Şubeyi seçip KAYDET'e basın.`;
-      currentBookId=null;
-   }else{
-      $('manualBarcode').value=code;
-      $('assignStatus').innerHTML=`🆕 Yeni barkod okundu: <b>${esc(code)}</b>.<br>Kitap adı/yazar/yayınevini doldurun, şubeyi seçin ve KAYDET'e basın.`;
+ if(mode!=='admin'){alert('Kitap ekleme yalnızca yönetici hesabına açıktır.');return}
+ $('manualBarcode').value='';
+ if(/^97[89]\d{10}$/.test(code)){
+   $('manualIsbn').value=code;
+   const sameBranch=data.books.find(b=>b.isbn===code&&b.branch===managedBranch());
+   if(sameBranch){
+     $('barcodeBookSelect').value=sameBranch.id;loadBarcodeBook();
+     $('assignStatus').innerHTML=`ℹ️ Bu ISBN ${esc(managedBranch())} şubesinde zaten kayıtlı: <b>${esc(sameBranch.title)}</b>. Mevcut nüshayı düzenleyebilir veya yeni nüsha eklemek için “Yeni Kitap” seçeneğini kullanabilirsiniz.`;
+     closeAssignScanner();return;
    }
- }catch(e){alert('Barkod sorgulanamadı: '+(e.message||e));}
- closeAssignScanner();
+   const otherBranch=data.books.find(b=>b.isbn===code);
+   if(otherBranch){
+     currentBookId=null;
+     $('manageTitle').value=otherBranch.title||'';
+     $('manageAuthor').value=otherBranch.author||'';
+     $('managePublisher').value=otherBranch.publisher||'';
+     $('manualIsbn').value=code;
+     $('manageBookState').textContent='Yeni şube nüshası · '+managedBranch();
+     $('assignStatus').innerHTML=`✅ ISBN merkezî katalogda bulundu. <b>${esc(otherBranch.title)}</b> bilgileri getirildi. Bu işlem ${esc(managedBranch())} şubesine yeni nüsha ekleyecek; kaydetmeden önce bilgileri kontrol edin.`;
+     closeAssignScanner();return;
+   }
+   $('assignStatus').textContent='ISBN barkodu okundu. Katalog bilgileri aranıyor...';
+   closeAssignScanner();
+   await lookupBookByIsbn(code);
+ }else{
+   $('assignStatus').innerHTML=`⚠️ Okunan kod ISBN-13 değil. Bu sistemde kitaplar ISBN ile tanımlanır. Lütfen kitabın arka kapağındaki 978/979 ile başlayan ISBN barkodunu okutun.`;
+   closeAssignScanner();
+ }
 }
-function closeAssignScanner(){clearInterval(assignTimer);if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
+function searchInKasif(){
+ const isbn=$('manualIsbn').value.trim().replace(/\D/g,'');
+ if(!isbn){alert('Önce ISBN barkodunu okutun veya ISBN numarasını girin.');return}
+ const url='https://kasif.mkutup.gov.tr/OpacArama.aspx?Ara='+encodeURIComponent(isbn)+'&DtSrc=0&fld=-1&NvBar=0';
+ window.open(url,'_blank','noopener');
+ $('assignStatus').textContent='Kaşif’te ISBN araması yeni sekmede açıldı. Uygun kaydı kontrol ederek bilgileri forma aktarabilirsiniz.';
+}
+function normalizePublisher(value){
+ return (value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+function isValidIsbn13(value){
+ const isbn=String(value||'').replace(/\D/g,'');
+ if(!/^97[89]\d{10}$/.test(isbn))return false;
+ const sum=[...isbn].reduce((total,digit,index)=>total+Number(digit)*(index%2===0?1:3),0);
+ return sum%10===0;
+}
+function selectCatalogCandidate(index){
+ const info=isbnCandidates[index];
+ if(!info)return;
+ $('manageTitle').value=info.title||'';
+ $('manageAuthor').value=(info.authors||[]).join(', ');
+ $('managePublisher').value=info.publisher||'';
+ const cover=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'';
+ const coverUrl=cover.replace(/^http:/,'https:');
+ $('assignStatus').innerHTML=`<div class="okbox"><b>ISBN ile eşleşen katalog kaydı seçildi.</b><div style="display:flex;gap:10px;align-items:center;margin-top:8px">${coverUrl?`<img src="${esc(coverUrl)}" style="width:58px;height:82px;object-fit:contain;border-radius:5px" alt="Kitap kapağı">`:''}<div><b>${esc(info.title||'Başlıksız kayıt')}</b><div class="small">Yazar: ${esc((info.authors||[]).join(', ')||'Belirtilmemiş')}</div><div class="small">Yayınevi: ${esc(info.publisher||'Belirtilmemiş')}</div></div></div><div class="small" style="margin-top:8px">Bilgileri kitabın üzerindeki baskıyla karşılaştırın. Henüz kaydedilmedi.</div></div>`;
+}
+async function lookupBookByIsbn(value){
+ const isbn=(value||$('manualIsbn').value||'').trim().replace(/\D/g,'');
+ if(!isValidIsbn13(isbn)){alert('ISBN-13 numarası geçerli görünmüyor. 978/979 ile başlayan 13 rakamı ve kontrol basamağını kontrol edin.');return}
+ $('manualIsbn').value=isbn;
+ isbnCandidates=[];
+ $('assignStatus').textContent='ISBN doğrulandı. Katalog kayıtları aranıyor...';
+ try{
+   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn)+'&maxResults=40');
+   if(!response.ok)throw new Error('Google Books kaynağına ulaşılamadı.');
+   const result=await response.json();
+   const seen=new Set();
+   isbnCandidates=(result.items||[]).map(item=>item.volumeInfo||{}).filter(info=>{
+     const ids=(info.industryIdentifiers||[]).map(x=>(x.identifier||'').replace(/\D/g,''));
+     const exact=ids.includes(isbn);
+     const key=[info.title,info.publisher,(info.authors||[]).join('|')].join('|').toLocaleLowerCase('tr-TR');
+     if(!exact||seen.has(key))return false;
+     seen.add(key);return true;
+   });
+   if(isbnCandidates.length){
+     $('assignStatus').innerHTML='<b>ISBN tam eşleşmesi bulundu.</b> Aşağıdaki katalog kayıtlarından kitabın üzerindeki baskıyla aynı olanı seçin. Yayınevi ve başlık farklılıklarını kontrol etmeden kaydetmeyin.'+
+       isbnCandidates.map((info,i)=>`<div class="item" style="align-items:flex-start"><div><b>${esc(info.title||'Başlık yok')}</b><div class="meta">Yazar: ${esc((info.authors||[]).join(', ')||'Belirtilmemiş')}</div><div class="meta">Yayınevi: ${esc(info.publisher||'Belirtilmemiş')}</div><div class="meta">ISBN: ${esc(isbn)}</div></div><button class="light" onclick="selectCatalogCandidate(${i})">BU KAYDI SEÇ</button></div>`).join('')+
+       '<div class="small" style="margin-top:8px">Kayıt seçimi yalnızca formu doldurur; veritabanına ekleme için ayrıca KAYDET düğmesine basmanız gerekir.</div>';
+   }else{
+     $('assignStatus').innerHTML='Bu ISBN için Google Books üzerinde ISBN numarasıyla tam eşleşen kayıt bulunamadı. Kitap bilgilerini elle girebilir veya Millî Kütüphane Kâşif kataloğunda arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
+   }
+ }catch(e){
+   $('assignStatus').innerHTML='Google Books kataloğuna ulaşılamadı. Kitap bilgilerini elle girebilir veya Kâşif’te arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
+ }
+}
+function closeAssignScanner(){clearInterval(assignTimer);assignTimer=null;if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
 async function openScanner(){
- $('scannerModal').classList.add('show');$('barcodeInput').value='';$('cameraStatus').textContent='Kamera hazırlanıyor...';try{if(!window.isSecureContext)throw new Error('secure');if(!navigator.mediaDevices?.getUserMedia)throw new Error('media');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});$('video').srcObject=stream;await $('video').play();$('cameraStatus').textContent='✅ Kamera açık. Barkodu çerçeveye getirin.';if('BarcodeDetector' in window){detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});clearInterval(scanTimer);scanTimer=setInterval(scanFrame,350)}}catch(e){$('cameraStatus').textContent='⚠️ Kamera açılamadı. HTTPS gerekir. Barkodu aşağıya elle de girebilirsiniz.'}}
-async function scanFrame(){if(!detector||!$('video').videoWidth)return;try{const c=await detector.detect($('video'));if(c[0]?.rawValue){$('barcodeInput').value=c[0].rawValue;processBarcode()}}catch(e){}}
-function closeScanner(){clearInterval(scanTimer);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('video').srcObject=null;$('scannerModal').classList.remove('show')}
-function processBarcode(){const code=$('barcodeInput').value.trim().replace(/\D/g,'');if(!code){alert('Barkod numarası bulunamadı.');return}let book=data.books.find(b=>b.barcode===code);if(!book){alert('Bu barkod sistemde tanımlı değil. Önce 🏷️ Barkod bölümünden kitabın nüshasına tanımlayın.');return}if(mode!=="admin"&&book.branch!==currentBranch){alert(`Bu barkod ${book.branch} nüshasına ait. Siz ${currentBranch} şubesindesiniz.`);return}const loan=activeLoanForBook(book.id);closeScanner();if(loan){const p=personById(loan.personId);currentBookId=book.id;showReturnCard(loan,p,book);return}currentBookId=book.id;openLoanForm(book)}
-function openLoanForm(book){const people=visiblePeople();$('personSelect')?.remove();let modal=document.createElement('div');modal.id='loanModal';modal.className='modal show';modal.innerHTML=`<div class="sheet"><h2>📖 Kitabı Ver</h2><div class="cover-card">${coverHTML(book,'cover big')}<div><h3 style="margin:0">${esc(book.title)}</h3><div class="small">${esc(book.branch)} · Barkod: ${esc(book.barcode)}</div><button class="light" style="margin-top:8px" onclick="openCoverManager('${book.id}')">🖼️ Kapak</button></div></div><label>Öğrenci</label><select id="loanPersonSelect">${people.map(p=>`<option value="${p.id}">${esc(p.number)} – ${esc(p.name)}</option>`).join('')}</select><label>İade tarihi</label><input id="loanDue" type="date" value="${addDays(data.settings.loanDays)}"><div id="borrowWarning" style="margin-top:9px"></div><button class="success full" onclick="confirmLend()">KİTABI VER</button><button class="light full" onclick="closeLoanModal()">İPTAL</button></div>`;document.body.appendChild(modal);$('loanPersonSelect').addEventListener('change',showBorrowWarning);showBorrowWarning()}
+ $('scannerModal').classList.add('show');$('barcodeInput').value='';$('cameraStatus').textContent='Kamera hazırlanıyor...';mainScanLock=false;
+ try{
+   if(!window.isSecureContext)throw new Error('Kamera için güvenli HTTPS bağlantısı gerekiyor.');
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Tarayıcı kamera erişimini desteklemiyor.');
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},audio:false});
+   $('video').srcObject=stream;await $('video').play();
+   const track=stream.getVideoTracks()[0];
+   try{const caps=track.getCapabilities?.();if(caps?.focusMode?.includes('continuous'))await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
+   if('BarcodeDetector' in window){
+     try{detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});}
+     catch(e){detector=null;}
+   }
+   if(detector){
+     $('cameraStatus').textContent='✅ Kamera hazır. Barkodu çerçeveye yaklaştırın; netleşmesi için telefonu sabit tutun.';
+     clearInterval(scanTimer);scanTimer=setInterval(scanFrame,250);
+   }else if(window.ZXing?.BrowserMultiFormatReader){
+     mainReader=new ZXing.BrowserMultiFormatReader();
+     $('cameraStatus').textContent='✅ Alternatif barkod okuyucu hazır. Barkodu çerçeveye yaklaştırın.';
+     mainReader.decodeFromVideoElementContinuously($('video'),(result,error)=>{
+       if(result&&!mainScanLock){mainScanLock=true;$('barcodeInput').value=result.getText();processBarcode();}
+     });
+   }else{
+     $('cameraStatus').textContent='Kamera açık ancak otomatik okuma desteklenmiyor. Barkod numarasını aşağıya yazabilirsiniz.';
+   }
+ }catch(e){$('cameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+'. Barkod numarasını elle de girebilirsiniz.'}
+}
+async function scanFrame(){
+ if(!detector||!$('video').videoWidth||mainScanLock)return;
+ try{
+   const found=await detector.detect($('video'));
+   const hit=found.find(x=>x.rawValue&&['ean_13','ean_8','upc_a','upc_e','code_128','qr_code'].includes(x.format));
+   if(hit?.rawValue){mainScanLock=true;$('barcodeInput').value=hit.rawValue;processBarcode();}
+ }catch(e){}
+}
+function closeScanner(){
+ clearInterval(scanTimer);scanTimer=null;mainScanLock=false;
+ if(mainReader){try{mainReader.reset()}catch(e){}mainReader=null}
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+ detector=null;$('video').srcObject=null;$('scannerModal').classList.remove('show')
+}
+function processBarcode(){const code=$('barcodeInput').value.trim().replace(/\D/g,'');if(!code){alert('ISBN numarası bulunamadı.');return}let matches=visibleBooks().filter(b=>b.isbn===code||b.barcode===code);if(!matches.length){alert('Bu ISBN seçili şubede kayıtlı değil. Kitap Yönetimi bölümünden ISBN kaydını kontrol edin.');return}if(mode==='admin'&&matches.length>1){const branches=[...new Set(matches.map(b=>b.branch))];if(branches.length>1){const choice=prompt('Bu ISBN birden fazla şubede kayıtlı. Şube seçin:\n'+branches.join('\n'),branches[0]);if(!choice)return;matches=matches.filter(b=>b.branch===choice);if(!matches.length){alert('Seçilen şubede bu kitap bulunamadı.');return}}}const book=matches.find(b=>activeLoanForBook(b.id))||matches[0];const loan=activeLoanForBook(book.id);closeScanner();if(loan){const p=personById(loan.personId);currentBookId=book.id;showReturnCard(loan,p,book);return}currentBookId=book.id;openLoanForm(book)}
+function openLoanForm(book){const people=visiblePeople();$('personSelect')?.remove();let modal=document.createElement('div');modal.id='loanModal';modal.className='modal show';modal.innerHTML=`<div class="sheet"><h2>📖 Kitabı Ver</h2><div class="cover-card">${coverHTML(book,'cover big')}<div><h3 style="margin:0">${esc(book.title)}</h3><div class="small">${esc(book.branch)} · ISBN: ${esc(book.isbn)}</div><button class="light" style="margin-top:8px" onclick="openCoverManager('${book.id}')">🖼️ Kapak</button></div></div><label>Öğrenci</label><select id="loanPersonSelect">${people.map(p=>`<option value="${p.id}">${esc(p.number)} – ${esc(p.name)}</option>`).join('')}</select><label>İade tarihi</label><input id="loanDue" type="date" value="${addDays(data.settings.loanDays)}"><div id="borrowWarning" style="margin-top:9px"></div><button class="success full" onclick="confirmLend()">KİTABI VER</button><button class="light full" onclick="closeLoanModal()">İPTAL</button></div>`;document.body.appendChild(modal);$('loanPersonSelect').addEventListener('change',showBorrowWarning);showBorrowWarning()}
 function showBorrowWarning(){const pid=$('loanPersonSelect')?.value;if(!pid)return;const active=activeLoansForPerson(pid);if(!active.length){$('borrowWarning').innerHTML='<div class="okbox">🟢 Bu öğrencinin üzerinde aktif kitap yok.</div>';return}const overdue=active.filter(l=>statusForLoan(l)==='overdue');$('borrowWarning').innerHTML=`<div class="dangerbox"><b>⚠️ DİKKAT: ${active.length} kitap hâlen öğrencide.</b>${overdue.length?`<br><b>${overdue.length} kitabın teslim tarihi geçmiş.</b>`:''}<div>${active.map(l=>{const b=bookById(l.bookId);return `<div class="person-chip">${esc(b?.title)} · son teslim: ${l.dueAt}</div>`}).join('')}</div><div style="margin-top:6px">Yeni kitabı yine de vermek istiyor musunuz?</div></div>`}
 async function confirmLend(){const pid=$('loanPersonSelect')?.value,due=$('loanDue')?.value;if(!currentBookId||!pid||!due)return;const active=activeLoansForPerson(pid);if(active.length&&!window.confirm('Bu öğrencinin üzerinde hâlen '+active.length+' kitap var. Yine de yeni kitabı vermek istiyor musunuz?'))return;const b=bookById(currentBookId);if(activeLoanForBook(b.id)){alert('Bu kitap zaten ödünçte.');return}const l={bookId:b.id,personId:pid,borrowedAt:today(),dueAt:due,returnedAt:null};try{await syncLoanToSupabase(l);await loadFromSupabase();closeLoanModal();alert(`Kitap verildi ✅
 
@@ -203,7 +336,7 @@ ${b.title}
 → ${personById(pid).name}
 İade: ${due}`);currentBookId=null}catch(e){alert('Ödünç kaydı oluşturulamadı: '+e.message)}}
 function closeLoanModal(){document.getElementById('loanModal')?.remove();currentBookId=null}
-function showReturnCard(loan,p,b){let m=document.createElement('div');m.id='returnModal';m.className='modal show';m.innerHTML=`<div class="sheet"><h2>🔄 Kitabı Geri Al</h2><div class="cover-card">${coverHTML(b,'cover big')}<div><h3 style="margin:0">${esc(b.title)}</h3><div class="small">${esc(b.branch)} · Barkod: ${esc(b.barcode)}</div></div></div><hr><div class="notice"><b>Şu anda:</b> ${esc(p?.name||'')}<br>Ödünç tarihi: ${loan.borrowedAt}<br>Son teslim: ${loan.dueAt}<br>Durum: <b>${statusText(loan)}</b></div><button class="success full" onclick="returnBook('${loan.id}');document.getElementById('returnModal')?.remove()">KİTABI GERİ AL</button><button class="light full" onclick="document.getElementById('returnModal')?.remove()">KAPAT</button></div>`;document.body.appendChild(m)}
+function showReturnCard(loan,p,b){let m=document.createElement('div');m.id='returnModal';m.className='modal show';m.innerHTML=`<div class="sheet"><h2>🔄 Kitabı Geri Al</h2><div class="cover-card">${coverHTML(b,'cover big')}<div><h3 style="margin:0">${esc(b.title)}</h3><div class="small">${esc(b.branch)} · ISBN: ${esc(b.isbn)}</div></div></div><hr><div class="notice"><b>Şu anda:</b> ${esc(p?.name||'')}<br>Ödünç tarihi: ${loan.borrowedAt}<br>Son teslim: ${loan.dueAt}<br>Durum: <b>${statusText(loan)}</b></div><button class="success full" onclick="returnBook('${loan.id}');document.getElementById('returnModal')?.remove()">KİTABI GERİ AL</button><button class="light full" onclick="document.getElementById('returnModal')?.remove()">KAPAT</button></div>`;document.body.appendChild(m)}
 async function returnBook(id){const l=data.loans.find(x=>x.id===id);if(!l)return;const b=bookById(l.bookId),p=personById(l.personId);if(confirm(`"${b?.title}" kitabını ${p?.name} kişisinden geri alayım mı?`)){try{l.returnedAt=today();await syncReturnToSupabase(l);await loadFromSupabase()}catch(e){alert('İade kaydı güncellenemedi: '+e.message)}}}
 function setupReportBranch(){const s=$('reportBranch');if(!s)return;const old=s.value;let opts=mode==='admin'?['TÜMÜ','3/A','3/B','3/C']:[currentBranch];s.innerHTML=opts.map(g=>`<option value="${g}">${g}</option>`).join('');if(opts.includes(old))s.value=old;else s.value=opts[0]}
 function reportPeople(branch){return branch==='TÜMÜ'?data.people.filter(p=>p.type==='Öğrenci'):data.people.filter(p=>p.group===branch&&p.type==='Öğrenci')}
@@ -225,11 +358,11 @@ function captureCover(){const v=$('coverVideo'),c=$('coverCanvas');c.width=v.vid
 function closeCoverCamera(){if(coverStream){coverStream.getTracks().forEach(t=>t.stop());coverStream=null}$('coverVideo').srcObject=null;$('coverCameraModal').classList.remove('show')}
 function openCrop(dataUrl){cropSource=dataUrl;cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};$('cropImage').src=dataUrl;$('zoomRange').value=1;$('cropModal').classList.add('show');setTimeout(()=>{const img=$('cropImage');img.onload=()=>{cropState.scale=Math.max(300/img.naturalWidth,400/img.naturalHeight,.55);$('zoomRange').min=Math.max(.3,cropState.scale*.7);$('zoomRange').max=cropState.scale*3;$('zoomRange').value=cropState.scale;updateCrop()};},20)}
 function updateCrop(){const img=$('cropImage'),stage=$('cropStage'),boxW=Math.min(innerWidth*.62,300),boxH=Math.min(innerWidth*.83,400),s=Number($('zoomRange').value);cropState.scale=s;const w=img.naturalWidth*s,h=img.naturalHeight*s;img.style.width=w+'px';img.style.height=h+'px';img.style.transform=`translate(${cropState.x}px,${cropState.y}px)`;}
-function finishCrop(){const img=$('cropImage'),stage=$('cropStage');const rect=stage.getBoundingClientRect(),boxW=Math.min(innerWidth*.62,300),boxH=Math.min(innerWidth*.83,400);const scale=cropState.scale;const renderedW=img.naturalWidth*scale,renderedH=img.naturalHeight*scale;const cx=(rect.width-boxW)/2,cy=(rect.height-boxH)/2;const imgLeft=(rect.width-renderedW)/2+cropState.x,imgTop=(rect.height-renderedH)/2+cropState.y;const sx=Math.max(0,(cx-imgLeft)/scale),sy=Math.max(0,(cy-imgTop)/scale),sw=Math.min(img.naturalWidth-sx,boxW/scale),sh=Math.min(img.naturalHeight-sy,boxH/scale);const out=document.createElement('canvas');out.width=420;out.height=560;out.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,out.width,out.height);const b=bookById(currentCoverBookId);b.cover=out.toDataURL('image/jpeg',.82);save();$('cropModal').classList.remove('show');openCoverManager(b.id)}
+async function finishCrop(){const img=$('cropImage'),stage=$('cropStage');const rect=stage.getBoundingClientRect(),boxW=Math.min(innerWidth*.62,300),boxH=Math.min(innerWidth*.83,400);const scale=cropState.scale;const renderedW=img.naturalWidth*scale,renderedH=img.naturalHeight*scale;const cx=(rect.width-boxW)/2,cy=(rect.height-boxH)/2;const imgLeft=(rect.width-renderedW)/2+cropState.x,imgTop=(rect.height-renderedH)/2+cropState.y;const sx=Math.max(0,(cx-imgLeft)/scale),sy=Math.max(0,(cy-imgTop)/scale),sw=Math.min(img.naturalWidth-sx,boxW/scale),sh=Math.min(img.naturalHeight-sy,boxH/scale);const out=document.createElement('canvas');out.width=420;out.height=560;out.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,out.width,out.height);const b=bookById(currentCoverBookId);if(!b?.bookId){alert('Kitabın merkezî kaydı bulunamadı.');return}try{const blob=await fetch(out.toDataURL('image/jpeg',.82)).then(r=>r.blob());const path=String(b.bookId)+'/cover.jpg';const {error:uploadError}=await sbClient.storage.from('book-covers').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(uploadError)throw uploadError;const {error:updateError}=await sbClient.from('books').update({cover_path:path,cover_url:null}).eq('id',Number(b.bookId));if(updateError)throw updateError;await loadFromSupabase();$('cropModal').classList.remove('show');openCoverManager(b.id)}catch(e){alert('Kapak kaydedilemedi: '+(e.message||e));}}
 function cancelCrop(){$('cropModal').classList.remove('show');cropSource=null}
-function removeCover(){const b=bookById(currentCoverBookId);if(!b)return;if(confirm('Bu kitabın kapak görselini kaldırmak istiyor musunuz?')){b.cover='';save();openCoverManager(b.id)}}
+async function removeCover(){const b=bookById(currentCoverBookId);if(!b)return;if(!confirm('Bu kitabın kapak görselini kaldırmak istiyor musunuz?'))return;try{if(b.bookId){if(b.cover&&b.cover.includes('/storage/v1/object/public/book-covers/')){const path=b.cover.split('/storage/v1/object/public/book-covers/')[1];if(path){const {error}=await sbClient.storage.from('book-covers').remove([decodeURIComponent(path)]);if(error)throw error;}}const {error}=await sbClient.from('books').update({cover_path:null,cover_url:null}).eq('id',Number(b.bookId));if(error)throw error;}await loadFromSupabase();openCoverManager(b.id)}catch(e){alert('Kapak kaldırılamadı: '+(e.message||e));}}
 // Automatic cover search by ISBN/barcode; fallback only, manual options remain available.
-async function autoCover(bookId){const b=bookById(bookId);if(!b)return;let isbn=b.isbn||b.barcode;if(!isbn){alert('Otomatik kapak için ISBN/barkod gerekir.');return}try{const r=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn));const j=await r.json();const u=j.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;if(u){b.cover=u.replace('http:','https:');save();openCoverManager(bookId);return}}catch(e){}alert('Otomatik kapak bulunamadı. Fotoğraf çekebilir veya galeriden seçebilirsiniz.')}
+async function autoCover(bookId){const b=bookById(bookId);if(!b)return;let isbn=b.isbn||b.barcode;if(!isbn){alert('Otomatik kapak için ISBN gerekir.');return}try{const r=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn));const j=await r.json();const u=j.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;if(u){const url=u.replace('http:','https:');const {error}=await sbClient.from('books').update({cover_url:url,cover_path:null}).eq('id',Number(b.bookId));if(error)throw error;await loadFromSupabase();openCoverManager(bookId);return}}catch(e){alert('Kapak kaydedilemedi: '+(e.message||e));return}alert('Otomatik kapak bulunamadı. Fotoğraf çekebilir veya galeriden seçebilirsiniz.')}
 // Drag crop image
 $('cropStage').addEventListener('pointerdown',e=>{if(e.target.id!=='cropImage')return;cropState.drag=true;cropState.startX=e.clientX-cropState.x;cropState.startY=e.clientY-cropState.y;$('cropImage').setPointerCapture(e.pointerId)});
 $('cropStage').addEventListener('pointermove',e=>{if(!cropState.drag)return;cropState.x=e.clientX-cropState.startX;cropState.y=e.clientY-cropState.startY;updateCrop()});$('cropStage').addEventListener('pointerup',()=>cropState.drag=false);$('cropStage').addEventListener('pointercancel',()=>cropState.drag=false);
