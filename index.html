@@ -155,7 +155,7 @@ async function applySelectedBookMetadata(){
   const patch={};if(!x.author&&x.newAuthor)patch.author=x.newAuthor;if(!x.publisher&&x.newPublisher)patch.publisher=x.newPublisher;
   if(!Object.keys(patch).length)continue;
   const {error}=await sbClient.from('books').update(patch).eq('id',Number(x.bookId));
-  if(error)failed.push(x.title+': '+error.message);else done++;
+  if(error)failed.push(x.title+': '+error.message);else{done++;if(patch.author)x.author=patch.author;if(patch.publisher)x.publisher=patch.publisher;}
  }
  await loadFromSupabase();
  $('bulkMetadataStatus').textContent=done+' kitabın eksik bilgileri kaydedildi.'+(failed.length?' Hatalar: '+failed.join(' | '):'');
