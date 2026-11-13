@@ -54,6 +54,7 @@ const BOOK_TITLES=["Kumbaramda Ne Saklı (Set)","Çantamdan Fil Çıktı","Gelec
 const STORAGE_KEY="atlas_kitaplik_v8_final";
 function makeSeed(){const people=[];Object.keys(PEOPLE).forEach(g=>PEOPLE[g].forEach((x,i)=>people.push({id:"P"+g.replace("/","")+String(i+1).padStart(2,"0"),number:String(x[0]),name:x[1],type:"Öğrenci",group:g})));people.push({id:"PADMIN",number:"",name:"AHMED BORUZA",type:"Öğretmen/Personel",group:"3/B"});const books=[];Object.keys(BRANCHES).forEach(g=>BOOK_TITLES.forEach((title,i)=>books.push({id:"B"+g.replace("/","")+String(i+1).padStart(2,"0"),no:i+1,title,author:"",publisher:"",barcode:"",isbn:"",branch:g,cover:""})));books.push({id:"B3BTEST",no:41,title:"Türkiye'nin Maarif Davası",author:"Nurettin Topçu",publisher:"Dergâh Yayınları",barcode:"9789757032182",isbn:"9789757032182",branch:"3/B",cover:""});return {settings:{loanDays:7},people,books,loans:[]}}
 let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")||makeSeed();
+let isbnCandidates=[];
 let dbClasses=[];
 let currentBranch="3/B", mode="teacher", currentBookId=null, currentCoverBookId=null, stream=null, detector=null, scanTimer=null, mainReader=null, mainScanLock=false, assignStream=null, assignDetector=null, assignTimer=null, assignReader=null, coverStream=null, cropSource=null, cropState={x:0,y:0,scale:1,startX:0,startY:0,drag:false};
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -104,6 +105,7 @@ async function saveManagedBook(){
  
  if(mode!=='admin'){alert('Kitap tanımlama işlemi yalnızca yönetici hesabına açıktır.');return}
  if(!title){alert('Kitap adı gerekli.');return}
+ if(isbn&&!isValidIsbn13(isbn)){alert('ISBN-13 numarası geçersiz. Lütfen 13 rakamı ve kontrol basamağını doğrulayın.');return}
  if(!branch||branch==='TÜMÜ'){alert('Önce bir şube seçin.');return}
  try{
    const current=currentBookId ? bookById(currentBookId) : null;
@@ -114,8 +116,14 @@ async function saveManagedBook(){
    }else{
      let existing=null;
      if(isbn){const {data,error}=await sbClient.from('books').select('*').eq('isbn',isbn).maybeSingle();if(error)throw error;existing=data;}
-     if(existing) central=existing;
-     else {const {data,error}=await sbClient.from('books').insert({title,author:author||null,publisher:publisher||null,isbn:isbn||null}).select().single();if(error)throw error;central=data;}
+     if(existing){
+       const sameTitle=normalizePublisher(existing.title)===normalizePublisher(title);
+       if(!sameTitle){alert('Bu ISBN merkezî katalogda “'+existing.title+'” adıyla kayıtlı. Aynı ISBN ile farklı bir kitap adı kaydedilemez. Kitabın ISBN’sini ve baskısını kontrol edin.');return}
+       central=existing;
+     }else{
+       const {data,error}=await sbClient.from('books').insert({title,author:author||null,publisher:publisher||null,isbn:isbn||null}).select().single();
+       if(error)throw error;central=data;
+     }
    }
    const {data:cls,error:cErr}=await sbClient.from('classes').select('id').eq('name',branch).single();
    if(cErr)throw cErr;
@@ -134,7 +142,7 @@ async function saveManagedBook(){
    currentBookId=linked?.id||null;
    renderBarcodeAdmin();
    if(currentBookId){$('barcodeBookSelect').value=currentBookId;loadBarcodeBook();}
-   $('assignStatus').innerHTML=`✅ <b>${esc(central.title)}</b> kaydedildi. ${code?'Nüsha barkodu: <b>'+esc(code)+'</b>':'Barkod daha sonra tanımlanabilir.'} · Şube: <b>${esc(branch)}</b>`;
+   $('assignStatus').innerHTML=`✅ <b>${esc(central.title)}</b> için ${esc(branch)} şube nüshası kaydedildi. ISBN: <b>${esc(isbn||'tanımlanmadı')}</b>. Ayrı nüsha barkodu kullanılmıyor.`;
    alert('Kitap kaydedildi. Ödünç ve iade işlemlerinde ISBN kullanılacak.');
  }catch(e){alert('Kitap kaydedilemedi: '+(e.message||e));}
 }
@@ -189,21 +197,31 @@ async function useScannedBarcode(){
  const code=$('assignScanInput').value.trim().replace(/\D/g,'');
  if(!code){alert('Barkod bulunamadı.');return}
  if(mode!=='admin'){alert('Kitap ekleme yalnızca yönetici hesabına açıktır.');return}
- const found=data.books.find(b=>(b.isbn===code||b.barcode===code)&&b.branch===managedBranch())||data.books.find(b=>b.isbn===code||b.barcode===code);
- if(found){
-   const branchSel=$('manageBranchSelect');if(branchSel)branchSel.value=found.branch;
-   renderBarcodeAdmin();$('barcodeBookSelect').value=found.id;loadBarcodeBook();
-   $('assignStatus').innerHTML=`✅ Bu barkod zaten kayıtlı: <b>${esc(found.title)}</b> · ${esc(found.branch)}`;
-   closeAssignScanner();return;
- }
  $('manualBarcode').value='';
  if(/^97[89]\d{10}$/.test(code)){
    $('manualIsbn').value=code;
-   $('assignStatus').textContent='ISBN barkodu okundu. Kitap bilgileri aranıyor...';
+   const sameBranch=data.books.find(b=>b.isbn===code&&b.branch===managedBranch());
+   if(sameBranch){
+     $('barcodeBookSelect').value=sameBranch.id;loadBarcodeBook();
+     $('assignStatus').innerHTML=`ℹ️ Bu ISBN ${esc(managedBranch())} şubesinde zaten kayıtlı: <b>${esc(sameBranch.title)}</b>. Mevcut nüshayı düzenleyebilir veya yeni nüsha eklemek için “Yeni Kitap” seçeneğini kullanabilirsiniz.`;
+     closeAssignScanner();return;
+   }
+   const otherBranch=data.books.find(b=>b.isbn===code);
+   if(otherBranch){
+     currentBookId=null;
+     $('manageTitle').value=otherBranch.title||'';
+     $('manageAuthor').value=otherBranch.author||'';
+     $('managePublisher').value=otherBranch.publisher||'';
+     $('manualIsbn').value=code;
+     $('manageBookState').textContent='Yeni şube nüshası · '+managedBranch();
+     $('assignStatus').innerHTML=`✅ ISBN merkezî katalogda bulundu. <b>${esc(otherBranch.title)}</b> bilgileri getirildi. Bu işlem ${esc(managedBranch())} şubesine yeni nüsha ekleyecek; kaydetmeden önce bilgileri kontrol edin.`;
+     closeAssignScanner();return;
+   }
+   $('assignStatus').textContent='ISBN barkodu okundu. Katalog bilgileri aranıyor...';
    closeAssignScanner();
    await lookupBookByIsbn(code);
  }else{
-   $('assignStatus').innerHTML=`🏷️ Fiziksel barkod okundu: <b>${esc(code)}</b>. Kitap ISBN’sini ayrıca okutun veya girin.`;
+   $('assignStatus').innerHTML=`⚠️ Okunan kod ISBN-13 değil. Bu sistemde kitaplar ISBN ile tanımlanır. Lütfen kitabın arka kapağındaki 978/979 ile başlayan ISBN barkodunu okutun.`;
    closeAssignScanner();
  }
 }
@@ -217,41 +235,49 @@ function searchInKasif(){
 function normalizePublisher(value){
  return (value||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 }
+function isValidIsbn13(value){
+ const isbn=String(value||'').replace(/\D/g,'');
+ if(!/^97[89]\d{10}$/.test(isbn))return false;
+ const sum=[...isbn].reduce((total,digit,index)=>total+Number(digit)*(index%2===0?1:3),0);
+ return sum%10===0;
+}
+function selectCatalogCandidate(index){
+ const info=isbnCandidates[index];
+ if(!info)return;
+ $('manageTitle').value=info.title||'';
+ $('manageAuthor').value=(info.authors||[]).join(', ');
+ $('managePublisher').value=info.publisher||'';
+ const cover=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'';
+ const coverUrl=cover.replace(/^http:/,'https:');
+ $('assignStatus').innerHTML=`<div class="okbox"><b>ISBN ile eşleşen katalog kaydı seçildi.</b><div style="display:flex;gap:10px;align-items:center;margin-top:8px">${coverUrl?`<img src="${esc(coverUrl)}" style="width:58px;height:82px;object-fit:contain;border-radius:5px" alt="Kitap kapağı">`:''}<div><b>${esc(info.title||'Başlıksız kayıt')}</b><div class="small">Yazar: ${esc((info.authors||[]).join(', ')||'Belirtilmemiş')}</div><div class="small">Yayınevi: ${esc(info.publisher||'Belirtilmemiş')}</div></div></div><div class="small" style="margin-top:8px">Bilgileri kitabın üzerindeki baskıyla karşılaştırın. Henüz kaydedilmedi.</div></div>`;
+}
 async function lookupBookByIsbn(value){
  const isbn=(value||$('manualIsbn').value||'').trim().replace(/\D/g,'');
- if(!/^97[89]\d{10}$/.test(isbn)){alert('Geçerli bir ISBN-13 barkodu okutun veya girin.');return}
+ if(!isValidIsbn13(isbn)){alert('ISBN-13 numarası geçerli görünmüyor. 978/979 ile başlayan 13 rakamı ve kontrol basamağını kontrol edin.');return}
  $('manualIsbn').value=isbn;
- $('assignStatus').textContent='ISBN ve yayınevi eşleşmesi kontrol edilerek kitap bilgileri aranıyor...';
+ isbnCandidates=[];
+ $('assignStatus').textContent='ISBN doğrulandı. Katalog kayıtları aranıyor...';
  try{
-   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn)+'&maxResults=20');
-   if(!response.ok)throw new Error('Kitap veri kaynağına ulaşılamadı.');
+   const response=await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:'+encodeURIComponent(isbn)+'&maxResults=40');
+   if(!response.ok)throw new Error('Google Books kaynağına ulaşılamadı.');
    const result=await response.json();
-   const items=result.items||[];
-   const exact=items.map(item=>item.volumeInfo||{}).filter(info=>{
+   const seen=new Set();
+   isbnCandidates=(result.items||[]).map(item=>item.volumeInfo||{}).filter(info=>{
      const ids=(info.industryIdentifiers||[]).map(x=>(x.identifier||'').replace(/\D/g,''));
-     return ids.includes(isbn);
+     const exact=ids.includes(isbn);
+     const key=[info.title,info.publisher,(info.authors||[]).join('|')].join('|').toLocaleLowerCase('tr-TR');
+     if(!exact||seen.has(key))return false;
+     seen.add(key);return true;
    });
-   const enteredPublisher=normalizePublisher($('managePublisher').value);
-   const matching=enteredPublisher?exact.find(info=>normalizePublisher(info.publisher)===enteredPublisher):null;
-   if(matching){
-     $('manageTitle').value=matching.title||$('manageTitle').value;
-     $('manageAuthor').value=(matching.authors||[]).join(', ')||$('manageAuthor').value;
-     $('managePublisher').value=matching.publisher||$('managePublisher').value;
-     $('assignStatus').innerHTML='✅ ISBN ve yayınevi eşleşti. Bilgileri kontrol edip kaydedebilirsiniz.';
-     return;
-   }
-   if(exact.length){
-     const publishers=[...new Set(exact.map(info=>info.publisher).filter(Boolean))];
-     $('assignStatus').textContent=enteredPublisher
-       ? '⚠️ ISBN kaydı bulundu ancak yayınevi eşleşmedi. Başka yayınevinin kitabını otomatik aktarmadım. Elinizdeki kitabın bilgilerini elle girebilir veya Kaşif’te kontrol edebilirsiniz.'
-       : 'ISBN kaydı bulundu. Güvenli eşleştirme için önce kitabın yayınevini girin; yayınevi eşleşmeden bilgiler otomatik aktarılmayacak.';
-     if(publishers.length) $('assignStatus').textContent+=' Bulunan yayınevi: '+publishers.join(', ')+'.';
+   if(isbnCandidates.length){
+     $('assignStatus').innerHTML='<b>ISBN tam eşleşmesi bulundu.</b> Aşağıdaki katalog kayıtlarından kitabın üzerindeki baskıyla aynı olanı seçin. Yayınevi ve başlık farklılıklarını kontrol etmeden kaydetmeyin.'+
+       isbnCandidates.map((info,i)=>`<div class="item" style="align-items:flex-start"><div><b>${esc(info.title||'Başlık yok')}</b><div class="meta">Yazar: ${esc((info.authors||[]).join(', ')||'Belirtilmemiş')}</div><div class="meta">Yayınevi: ${esc(info.publisher||'Belirtilmemiş')}</div><div class="meta">ISBN: ${esc(isbn)}</div></div><button class="light" onclick="selectCatalogCandidate(${i})">BU KAYDI SEÇ</button></div>`).join('')+
+       '<div class="small" style="margin-top:8px">Kayıt seçimi yalnızca formu doldurur; veritabanına ekleme için ayrıca KAYDET düğmesine basmanız gerekir.</div>';
    }else{
-     $('assignStatus').textContent='Bu ISBN için doğrulanmış katalog kaydı bulunamadı. Kitabı elle kaydedebilirsiniz; isterseniz Kaşif’te arayın.';
+     $('assignStatus').innerHTML='Bu ISBN için Google Books üzerinde ISBN numarasıyla tam eşleşen kayıt bulunamadı. Kitap bilgilerini elle girebilir veya Millî Kütüphane Kâşif kataloğunda arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
    }
-   $('assignStatus').innerHTML=esc($('assignStatus').textContent)+' <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
  }catch(e){
-   $('assignStatus').innerHTML='Otomatik katalog kaynağına ulaşılamadı. Kitabı elle kaydedebilir veya Kaşif’te ISBN arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
+   $('assignStatus').innerHTML='Google Books kataloğuna ulaşılamadı. Kitap bilgilerini elle girebilir veya Kâşif’te arayabilirsiniz. <button class="light" onclick="searchInKasif()">KAŞİF’TE ISBN ARA</button>';
  }
 }
 function closeAssignScanner(){clearInterval(assignTimer);assignTimer=null;if(assignReader){try{assignReader.reset()}catch(e){}assignReader=null}if(assignStream){assignStream.getTracks().forEach(t=>t.stop());assignStream=null}assignDetector=null;$('assignVideo').srcObject=null;$('assignModal').classList.remove('show')}
