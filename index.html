@@ -280,29 +280,41 @@ function saveAssignedBarcode(){saveManagedBook()}
 function deleteAssignedBarcode(){deleteManagedBook()}
 async function openAssignScanner(){
  const m=$('assignModal');m.classList.add('show');$('assignScanInput').value='';$('assignCameraStatus').textContent='Kamera hazırlanıyor...';
+ assignScanLock=false;
  try{
    if(!window.isSecureContext)throw new Error('Bu sayfada kamera için HTTPS gerekiyor.');
    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Tarayıcı kamera erişimini desteklemiyor.');
-   assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+   assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}},audio:false});
    $('assignVideo').srcObject=assignStream;await $('assignVideo').play();
-   if('BarcodeDetector' in window){
-     try{assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});}catch(e){assignDetector=null;}
-   }
-   if(assignDetector){
-     $('assignCameraStatus').textContent='✅ Kamera açık. ISBN barkodunu kameraya gösterin.';
-     clearInterval(assignTimer);
-     assignTimer=setInterval(async()=>{try{const found=await assignDetector.detect($('assignVideo'));if(found[0]?.rawValue){clearInterval(assignTimer);$('assignScanInput').value=found[0].rawValue;await useScannedBarcode()}}catch(e){}},300);
-   }else if(window.ZXing?.BrowserMultiFormatReader){
-     assignReader=new ZXing.BrowserMultiFormatReader();
-     $('assignCameraStatus').textContent='✅ Alternatif barkod okuyucu hazır. ISBN barkodunu kameraya gösterin.';
+   const track=assignStream.getVideoTracks()[0];
+   try{const caps=track.getCapabilities?.();if(caps?.focusMode?.includes('continuous'))await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
+   if(window.ZXing?.BrowserMultiFormatReader){
+     const hints=new Map();
+     if(ZXing.DecodeHintType&&ZXing.BarcodeFormat){
+       hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_128]);
+     }
+     assignReader=new ZXing.BrowserMultiFormatReader(hints,180);
+     $('assignCameraStatus').textContent='✅ Kamera hazır. Barkodun tamamını kadraja alın; otomatik okunacaktır.';
      assignReader.decodeFromVideoElementContinuously($('assignVideo'),async(result,error)=>{
-       if(result){assignReader.reset();$('assignScanInput').value=result.getText();await useScannedBarcode()}
+       if(result&&!assignScanLock){
+         assignScanLock=true;
+         $('assignScanInput').value=result.getText();
+         $('assignCameraStatus').textContent='✅ Barkod okundu: '+result.getText()+' · Kitap bilgileri getiriliyor...';
+         await useScannedBarcode();
+       }
      });
+   }else if('BarcodeDetector' in window){
+     try{assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});}catch(e){assignDetector=null;}
+     if(!assignDetector)throw new Error('Bu tarayıcıda uyumlu barkod okuyucu başlatılamadı.');
+     $('assignCameraStatus').textContent='✅ Kamera hazır. Barkodun tamamını kadraja alın; otomatik okunacaktır.';
+     clearInterval(assignTimer);
+     assignTimer=setInterval(async()=>{if(assignScanLock)return;try{const found=await assignDetector.detect($('assignVideo'));const hit=found.find(x=>x.rawValue);if(hit){assignScanLock=true;$('assignScanInput').value=hit.rawValue;$('assignCameraStatus').textContent='✅ Barkod okundu: '+hit.rawValue+' · Kitap bilgileri getiriliyor...';await useScannedBarcode()}}catch(e){}},250);
    }else{
-     $('assignCameraStatus').textContent='Kamera açık ancak otomatik barkod okuma bu tarayıcıda desteklenmiyor. ISBN numarasını aşağıya yazabilirsiniz.';
+     $('assignCameraStatus').textContent='Kamera açık ancak otomatik barkod okuma desteklenmiyor. ISBN numarasını elle yazabilirsiniz.';
    }
  }catch(e){
-   $('assignCameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+' Barkod numarasını aşağıya da yazabilirsiniz.';
+   $('assignCameraStatus').textContent='⚠️ Kamera açılamadı: '+(e.message||'İzin veya cihaz kontrolü gerekli')+'. Barkod numarasını elle de yazabilirsiniz.';
  }
 }
 async function useScannedBarcode(){
