@@ -500,7 +500,9 @@ function renderAdvancedReports(){
  const branch=$('reportBranch').value||currentBranch;
  const people=reportPeople(branch);
  const countForMonth=p=>calcPerson(p.id).returned.filter(l=>!month||String(l.returnedAt||'').slice(0,7)===month).length;
- const ranked=people.map(p=>({person:p,count:countForMonth(p)})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.person.name.localeCompare(b.person.name,'tr')).slice(0,5);
+ const allReaders=people.map(p=>({person:p,count:countForMonth(p)})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.person.name.localeCompare(b.person.name,'tr'));
+ const ranked=allReaders.slice(0,5);
+ const readerCount=allReaders.length;
  const total=people.reduce((sum,p)=>sum+countForMonth(p),0);
  const branches=mode==='admin'?(branch==='TÜMÜ'?['3/A','3/B','3/C']:[branch]):[currentBranch];
  const branchRows=branches.map(g=>{
@@ -510,7 +512,7 @@ function renderAdvancedReports(){
    const readers=groupPeople.filter(p=>countForMonth(p)>0).length;
    return {group:g,students:groupPeople.length,readers,returned,active};
  });
- box.innerHTML=`<div class="summary"><div class="card"><div class="stat">${total}</div><div class="small">${month} ayında iade edilen</div></div><div class="card"><div class="stat">${ranked.length}</div><div class="small">Okuma yapan öğrenci</div></div></div>
+ box.innerHTML=`<div class="summary"><div class="card"><div class="stat">${total}</div><div class="small">${month} ayında iade edilen</div></div><div class="card"><div class="stat">${readerCount}</div><div class="small">Okuma yapan öğrenci</div></div></div>
  <h4>🏅 Ayın en çok kitap okuyanları</h4>${ranked.length?`<table class="report-table"><tr><th>Sıra</th><th>Öğrenci</th><th>Şube</th><th>İade edilen kitap</th></tr>${ranked.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.person.name)}</td><td>${esc(x.person.group)}</td><td>${x.count}</td></tr>`).join('')}</table>`:'<div class="small">Bu ay için tamamlanmış okuma kaydı bulunmuyor.</div>'}
  <h4>🏫 Şube karşılaştırması</h4>${branchRows.length?`<table class="report-table"><tr><th>Şube</th><th>Öğrenci</th><th>Okuma yapan</th><th>Bu ay iade</th><th>Şu an üzerinde</th></tr>${branchRows.map(x=>`<tr><td>${x.group}</td><td>${x.students}</td><td>${x.readers}</td><td>${x.returned}</td><td>${x.active}</td></tr>`).join('')}</table>`:'<div class="small">Şube verisi bulunamadı.</div>'}
  <div class="small" style="margin-top:7px">Not: Aylık okuma sayısı, seçilen ay içinde iade tarihi bulunan ödünç kayıtları üzerinden hesaplanır. Şube karşılaştırması yönetici modunda tüm şubeleri gösterir.</div>`;
