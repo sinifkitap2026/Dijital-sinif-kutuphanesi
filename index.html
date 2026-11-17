@@ -251,7 +251,9 @@ async function openAssignScanner(){
    assignStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
    $('assignVideo').srcObject=assignStream;await $('assignVideo').play();
    if('BarcodeDetector' in window){
-     assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});
+     try{assignDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','qr_code']});}catch(e){assignDetector=null;}
+   }
+   if(assignDetector){
      $('assignCameraStatus').textContent='✅ Kamera açık. ISBN barkodunu kameraya gösterin.';
      clearInterval(assignTimer);
      assignTimer=setInterval(async()=>{try{const found=await assignDetector.detect($('assignVideo'));if(found[0]?.rawValue){clearInterval(assignTimer);$('assignScanInput').value=found[0].rawValue;await useScannedBarcode()}}catch(e){}},300);
@@ -313,8 +315,10 @@ function normalizePublisher(value){
 function isValidIsbn13(value){
  const isbn=String(value||'').replace(/\D/g,'');
  if(!/^97[89]\d{10}$/.test(isbn))return false;
- const sum=[...isbn].reduce((total,digit,index)=>total+Number(digit)*(index%2===0?1:3),0);
- return sum%10===0;
+ // ISBN-13 kontrol basamağı ilk 12 haneden hesaplanır; 13. hane sonuçla karşılaştırılır.
+ const sum=[...isbn.slice(0,12)].reduce((total,digit,index)=>total+Number(digit)*(index%2===0?1:3),0);
+ const checkDigit=(10-(sum%10))%10;
+ return checkDigit===Number(isbn[12]);
 }
 function selectCatalogCandidate(index){
  const info=isbnCandidates[index];
