@@ -448,7 +448,38 @@ function closeScanner(){
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
  detector=null;$('video').srcObject=null;$('scannerModal').classList.remove('show')
 }
-function processBarcode(){const code=$('barcodeInput').value.trim().replace(/\D/g,'');if(!code){alert('ISBN numarası bulunamadı.');return}let matches=visibleBooks().filter(b=>b.isbn===code||b.barcode===code);if(!matches.length){alert('Bu ISBN seçili şubede kayıtlı değil. Kitap Yönetimi bölümünden ISBN kaydını kontrol edin.');return}if(mode==='admin'&&matches.length>1){const branches=[...new Set(matches.map(b=>b.branch))];if(branches.length>1){const choice=prompt('Bu ISBN birden fazla şubede kayıtlı. Şube seçin:\n'+branches.join('\n'),branches[0]);if(!choice)return;matches=matches.filter(b=>b.branch===choice);if(!matches.length){alert('Seçilen şubede bu kitap bulunamadı.');return}}}const book=matches.find(b=>activeLoanForBook(b.id))||matches[0];const loan=activeLoanForBook(book.id);closeScanner();if(loan){const p=personById(loan.personId);currentBookId=book.id;showReturnCard(loan,p,book);return}currentBookId=book.id;openLoanForm(book)}
+function processBarcode(){
+ const code=$('barcodeInput').value.trim().replace(/\D/g,'');
+ if(!code){alert('ISBN numarası bulunamadı.');return}
+ // Yönetici tüm şubelerde arar; öğretmen yalnızca kendi şubesindeki nüshayı görür.
+ const source=mode==='admin'?data.books:visibleBooks();
+ const norm=v=>String(v||'').replace(/\D/g,'');
+ let matches=source.filter(b=>norm(b.isbn)===code||norm(b.barcode)===code);
+ if(!matches.length){
+   const elsewhere=data.books.filter(b=>norm(b.isbn)===code||norm(b.barcode)===code);
+   if(elsewhere.length){
+     const branches=[...new Set(elsewhere.map(b=>b.branch).filter(Boolean))];
+     alert('ISBN katalogda kayıtlı; ancak bu oturumun erişebildiği şube nüshası bulunamadı.'+(branches.length?' Kayıtlı şube: '+branches.join(', '):''));
+   }else{
+     alert('Bu ISBN katalogda bulunamadı. Önce Kitap Yönetimi bölümünden merkezî kitap ve şube nüshası kaydını kontrol edin.');
+   }
+   return;
+ }
+ if(mode==='admin'&&matches.length>1){
+   const branches=[...new Set(matches.map(b=>b.branch))];
+   if(branches.length>1){
+     const choice=prompt('Bu ISBN birden fazla şubede kayıtlı. Şube seçin:\n'+branches.join('\n'),branches[0]);
+     if(!choice)return;
+     matches=matches.filter(b=>b.branch===choice);
+     if(!matches.length){alert('Seçilen şubede bu kitap bulunamadı.');return}
+   }
+ }
+ const book=matches.find(b=>activeLoanForBook(b.id))||matches[0];
+ const loan=activeLoanForBook(book.id);
+ closeScanner();
+ if(loan){const p=personById(loan.personId);currentBookId=book.id;showReturnCard(loan,p,book);return}
+ currentBookId=book.id;openLoanForm(book);
+}
 function openLoanForm(book){const people=visiblePeople();$('personSelect')?.remove();let modal=document.createElement('div');modal.id='loanModal';modal.className='modal show';modal.innerHTML=`<div class="sheet"><h2>📖 Kitabı Ver</h2><div class="cover-card">${coverHTML(book,'cover big')}<div><h3 style="margin:0">${esc(book.title)}</h3><div class="small">${esc(book.branch)} · ISBN: ${esc(book.isbn)}</div><button class="light" style="margin-top:8px" onclick="openCoverManager('${book.id}')">🖼️ Kapak</button></div></div><label>Öğrenci</label><select id="loanPersonSelect">${people.map(p=>`<option value="${p.id}">${esc(p.number)} – ${esc(p.name)}</option>`).join('')}</select><label>İade tarihi</label><input id="loanDue" type="date" value="${addDays(data.settings.loanDays)}"><div id="borrowWarning" style="margin-top:9px"></div><button class="success full" onclick="confirmLend()">KİTABI VER</button><button class="light full" onclick="closeLoanModal()">İPTAL</button></div>`;document.body.appendChild(modal);$('loanPersonSelect').addEventListener('change',showBorrowWarning);showBorrowWarning()}
 function showBorrowWarning(){const pid=$('loanPersonSelect')?.value;if(!pid)return;const active=activeLoansForPerson(pid);if(!active.length){$('borrowWarning').innerHTML='<div class="okbox">🟢 Bu öğrencinin üzerinde aktif kitap yok.</div>';return}const overdue=active.filter(l=>statusForLoan(l)==='overdue');$('borrowWarning').innerHTML=`<div class="dangerbox"><b>⚠️ DİKKAT: ${active.length} kitap hâlen öğrencide.</b>${overdue.length?`<br><b>${overdue.length} kitabın teslim tarihi geçmiş.</b>`:''}<div>${active.map(l=>{const b=bookById(l.bookId);return `<div class="person-chip">${esc(b?.title)} · son teslim: ${l.dueAt}</div>`}).join('')}</div><div style="margin-top:6px">Yeni kitabı yine de vermek istiyor musunuz?</div></div>`}
 async function confirmLend(){const pid=$('loanPersonSelect')?.value,due=$('loanDue')?.value;if(!currentBookId||!pid||!due)return;const active=activeLoansForPerson(pid);if(active.length&&!window.confirm('Bu öğrencinin üzerinde hâlen '+active.length+' kitap var. Yine de yeni kitabı vermek istiyor musunuz?'))return;const b=bookById(currentBookId);if(activeLoanForBook(b.id)){alert('Bu kitap zaten ödünçte.');return}const l={bookId:b.id,personId:pid,borrowedAt:today(),dueAt:due,returnedAt:null};try{await syncLoanToSupabase(l);await loadFromSupabase();closeLoanModal();alert(`Kitap verildi ✅
