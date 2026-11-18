@@ -70,7 +70,35 @@ function urlForIsbn(){return 'https://kasif.mkutup.gov.tr/OpacArama.aspx?Ara='+e
 function validIsbn(s){if(!/^97[89]\d{10}$/.test(s))return false;let sum=0;for(let i=0;i<12;i++)sum+=Number(s[i])*(i%2?3:1);return (10-sum%10)%10===Number(s[12])}
 function setStatus(msg,kind=''){ $('status').className='status '+kind; $('status').textContent=msg; }
 $('openBtn').addEventListener('click',()=>{const isbn=cleanIsbn();if(!validIsbn(isbn)){setStatus('Geçerli bir ISBN-13 girin.','bad');return}const u=urlForIsbn();$('kasifFrame').src=u;window.open(u,'_blank','noopener');setStatus('Kaşif araması yeni sekmede açıldı. Sonuç kaydını kontrol edin.','ok')});
-$('autoBtn').addEventListener('click',async()=>{const isbn=cleanIsbn();if(!validIsbn(isbn)){setStatus('Geçerli bir ISBN-13 girin.','bad');return}$('isbn').value=isbn;$('details').innerHTML='';setStatus('Kaşif sunucusuna doğrudan erişim deneniyor...');try{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);const response=await fetch(urlForIsbn(),{method:'GET',mode:'cors',signal:controller.signal,credentials:'omit'});clearTimeout(timer);if(!response.ok)throw new Error('Kaşif HTTP '+response.status+' yanıtı verdi.');const html=await response.text();if(!html||html.length<100)throw new Error('Kaşif yanıtı boş veya okunabilir değil.');const doc=new DOMParser().parseFromString(html,'text/html');const txt=(doc.body?.innerText||'').replace(/\s+/g,' ').trim();$('details').innerHTML='<div class="result"><b>Sunucudan yanıt alındı</b><p class="muted">Sayfa içeriği geldi. Ancak katalog alanlarının otomatik ayrıştırılması için Kaşif sonuç sayfasının HTML yapısını ayrıca eşleştirmemiz gerekiyor.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">'+(txt.slice(0,1800).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])))+'</pre></div>';setStatus('Bağlantı başarılı: Kaşif sayfası bu tarayıcıdan okunabildi. Şimdi künye alanlarını ayrıştırma aşamasını test edeceğiz.','ok')}catch(e){const reason=e.name==='AbortError'?'15 saniyede yanıt gelmedi.':(e.message||'Bilinmeyen hata');setStatus('Tarayıcıdan otomatik erişim başarısız: '+reason+'\n\nBu sonuç Kaşif’te kitabın bulunmadığını göstermez. Kaşif sayfası tarayıcılar arası erişimi (CORS) engelliyor olabilir. Bu durumda otomatik aktarım için güvenli bir sunucu tarafı bağlantısı gerekir.','warn');$('kasifFrame').src=urlForIsbn()}});
+$('autoBtn').addEventListener('click',async()=>{
+ const isbn=cleanIsbn();
+ if(!validIsbn(isbn)){setStatus('Geçerli bir ISBN-13 girin.','bad');return}
+ $('isbn').value=isbn;$('details').innerHTML='';
+ setStatus('Güvenli sunucu üzerinden Kaşif sorgulanıyor...');
+ try{
+  const response=await fetch('https://lmdjsfsgoevwtpiavmmn.supabase.co/functions/v1/kasif-isbn-lookup',{
+   method:'POST',
+   headers:{
+    'Content-Type':'application/json',
+    'apikey':'sb_publishable_Gh-0iOMJVVZR9RSYnX3flA_v6bCXAwh'
+   },
+   body:JSON.stringify({isbn})
+  });
+  const data=await response.json();
+  if(!response.ok||data.error)throw new Error(data.error||('Sunucu HTTP '+response.status));
+  if(!data.html)throw new Error('Kaşif yanıtında okunabilir katalog sayfası bulunamadı.');
+  const doc=new DOMParser().parseFromString(data.html,'text/html');
+  const pageText=(doc.body?.innerText||doc.body?.textContent||'').replace(/\\s+/g,' ').trim();
+  const title=doc.title||'Kaşif arama sonuçları';
+  const escaped=pageText.slice(0,5000).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  $('details').innerHTML='<div class="result"><b>'+title.replace(/[&<>]/g,' ')+'</b><p class="muted">Kaşif sayfası sunucu üzerinden alındı. Aşağıdaki metin katalog sonuçlarının ayrıştırılması için inceleniyor.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">'+escaped+'</pre></div>';
+  $('kasifFrame').src=urlForIsbn();
+  setStatus('Sunucu bağlantısı başarılı. Kaşif HTTP '+data.status+' yanıtı verdi. Katalog metni alındı; şimdi sonuçların künye alanlarına doğru ayrıştırıldığını doğruluyoruz.','ok');
+ }catch(e){
+  setStatus('Sunucu üzerinden Kaşif sorgusu başarısız: '+(e.message||'Bilinmeyen hata')+'\\n\\nBu aşamada Atlas Kitaplık veritabanına hiçbir kayıt yazılmadı.','warn');
+  $('kasifFrame').src=urlForIsbn();
+ }
+});
 $('isbn').addEventListener('change',()=>{const s=cleanIsbn();$('isbn').value=s});
 </script>
 </body></html>
