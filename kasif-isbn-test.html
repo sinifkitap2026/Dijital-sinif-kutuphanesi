@@ -39,18 +39,29 @@
 <p class="muted">Bu alanlar yalnızca test içindir. Bu sayfada KAYDET düğmesi yoktur. Kayıt ana sisteme ancak ayrı ve onaylı bir geliştirmeyle aktarılabilir.</p>
 </section>
 </main>
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 let scanStream=null,scanTimer=null;
 $('scanBtn').addEventListener('click',async()=>{
- if(!('BarcodeDetector' in window)){setStatus('Bu tarayıcı barkod algılamayı desteklemiyor. Güncel Chrome deneyin veya ISBN numarasını girin.','warn');return}
  try{
-  const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
-  scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-  const video=$('camera');video.srcObject=scanStream;video.style.display='block';await video.play();
-  setStatus('Kamera açık. Kitabın arka kapağındaki barkodu kameraya gösterin.');
-  const tick=async()=>{if(!scanStream)return;try{const codes=await detector.detect(video);const found=codes.find(x=>/^97[89]\\d{10}$/.test((x.rawValue||'').replace(/\\D/g,'')));if(found){$('isbn').value=found.rawValue.replace(/\\D/g,'');stopScan();setStatus('ISBN barkoddan okundu. Kaşif sorgusu başlatılıyor.','ok');$('autoBtn').click();return}}catch(e){}scanTimer=setTimeout(tick,250)};
-  tick();
+  if(!navigator.mediaDevices?.getUserMedia) throw new Error('Kamera erişimi bu tarayıcıda desteklenmiyor. HTTPS üzerinden güncel Chrome kullanın.');
+  const video=$('camera');video.style.display='block';
+  setStatus('Kamera hazırlanıyor...');
+  if('BarcodeDetector' in window){
+   const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+   scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+   video.srcObject=scanStream;await video.play();
+   setStatus('Kamera açık. Barkodu ekrandaki çerçeveye yaklaştırın; net ve ışıklı tutun.');
+   const tick=async()=>{if(!scanStream)return;try{const codes=await detector.detect(video);const found=codes.find(x=>/^97[89]\d{10}$/.test((x.rawValue||'').replace(/\D/g,'')));if(found){$('isbn').value=found.rawValue.replace(/\D/g,'');stopScan();setStatus('ISBN barkoddan okundu. Kaşif sorgusu başlatılıyor.','ok');$('autoBtn').click();return}}catch(e){setStatus('Barkod okunurken hata: '+e.message,'warn')}scanTimer=setTimeout(tick,250)};
+   tick();
+  }else if(window.ZXing && window.ZXing.BrowserMultiFormatReader){
+   const reader=new ZXing.BrowserMultiFormatReader();
+   setStatus('Uyumlu barkod okuyucu yükleniyor; kamera açılacak...');
+   reader.decodeFromVideoDevice(undefined,video,(result,err)=>{
+    if(result){const raw=String(result.getText()||'').replace(/\D/g,'');if(/^97[89]\d{10}$/.test(raw)){$('isbn').value=raw;reader.reset();stopScan();setStatus('ISBN barkoddan okundu. Kaşif sorgusu başlatılıyor.','ok');$('autoBtn').click()}}
+   }).then(()=>{scanStream={getTracks:()=>[],stop:()=>reader.reset()};setStatus('Kamera açık. Barkodu ekrandaki alana yaklaştırın; net ve ışıklı tutun.')}).catch(e=>setStatus('Kamera açılamadı: '+(e.message||e),'bad'));
+  }else{throw new Error('Barkod okuyucu yüklenemedi. İnternet bağlantınızı kontrol edin ve sayfayı yenileyin.')}
  }catch(e){setStatus('Kamera açılamadı: '+(e.message||e),'bad')}
 });
 function stopScan(){if(scanTimer)clearTimeout(scanTimer);scanTimer=null;if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}$('camera').style.display='none';$('camera').srcObject=null}
