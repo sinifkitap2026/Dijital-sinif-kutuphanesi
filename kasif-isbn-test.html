@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kaşif ISBN Bağlantı Testi</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#183044;background:#f2f6f8}*{box-sizing:border-box}body{margin:0;padding:22px 14px}.wrap{max-width:760px;margin:auto}.card{background:#fff;border:1px solid #dce6ec;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 4px 16px #17324d0b}h1{font-size:24px;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}.muted{color:#5c7180;font-size:14px;line-height:1.5}.tag{display:inline-block;background:#e8f1f6;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:700}label{display:block;font-weight:650;margin:12px 0 5px}input{width:100%;padding:13px;border:1px solid #bdccd6;border-radius:9px;font-size:17px}button,a.btn{display:inline-block;border:0;border-radius:9px;padding:12px 15px;font-weight:700;text-decoration:none;cursor:pointer;margin:8px 6px 0 0;font-size:14px}.primary{background:#155e75;color:white}.secondary{background:#e7eef2;color:#183044}.status{padding:12px;border-radius:9px;background:#f1f5f7;margin-top:12px;white-space:pre-wrap;line-height:1.5}.ok{background:#e8f6ed;color:#155b32}.warn{background:#fff5df;color:#714c00}.bad{background:#fdecec;color:#8b2020}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid input{font-size:15px}.result{border:1px solid #dce6ec;padding:12px;border-radius:9px;margin-top:10px}.result b{display:block;margin-bottom:4px}iframe{width:100%;height:520px;border:1px solid #dce6ec;border-radius:10px;background:#fff}@media(max-width:560px){.grid{grid-template-columns:1fr}body{padding:12px 9px}.card{padding:15px}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="card">
+<span class="tag">BAĞIMSIZ TEST · VERİTABANINA BAĞLI DEĞİL</span>
+<h1>Kaşif ISBN Otomatik Künye Testi</h1>
+<p class="muted">Amaç: ISBN ile Millî Kütüphane Kaşif kataloğunda kayıt bulunup bulunmadığını ve bu kaydın bu sayfaya otomatik aktarılıp aktarılamadığını sınamak. Bu sayfa Atlas Kitaplık veritabanına bağlanmaz; hiçbir kitap, öğrenci veya ödünç kaydını değiştiremez.</p>
+</div>
+<section class="card">
+<h2>1. ISBN ile sorgula</h2>
+<label for="isbn">Kitabın ISBN-13 numarası</label>
+<input id="isbn" inputmode="numeric" value="9786051148076" maxlength="17" placeholder="978...">
+<button class="primary" id="autoBtn">KAŞİF'TEN OTOMATİK GETİRMEYİ DENE</button>
+<button class="secondary" id="openBtn">KAŞİF'TE ARAMAYI AÇ</button>
+<div id="status" class="status">Hazır. Önce otomatik sorgulamayı deneyin.</div>
+<div id="details"></div>
+</section>
+<section class="card">
+<h2>2. Kaşif arama ekranı</h2>
+<p class="muted">Kaşif arama sayfası aşağıda görüntülenebilirse sonucu buradan inceleyebiliriz. Güvenlik nedeniyle başka bir sitenin sayfa içeriği tarayıcı tarafından engellenirse üstteki “Kaşif'te aramayı aç” düğmesini kullanın.</p>
+<iframe id="kasifFrame" title="Millî Kütüphane Kaşif arama sonucu" loading="lazy"></iframe>
+</section>
+<section class="card">
+<h2>3. Sonuçları kaydetmeden inceleme</h2>
+<div class="grid">
+<div><label for="title">Kitap adı</label><input id="title" placeholder="Kaşif kaydından aktarılacak"></div>
+<div><label for="author">Yazar</label><input id="author" placeholder="Kaşif kaydından aktarılacak"></div>
+<div><label for="publisher">Yayınevi</label><input id="publisher" placeholder="Kaşif kaydından aktarılacak"></div>
+<div><label for="year">Yayın yılı</label><input id="year" placeholder="Varsa"></div>
+</div>
+<p class="muted">Bu alanlar yalnızca test içindir. Bu sayfada KAYDET düğmesi yoktur. Kayıt ana sisteme ancak ayrı ve onaylı bir geliştirmeyle aktarılabilir.</p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function cleanIsbn(){return $('isbn').value.replace(/[^0-9Xx]/g,'').toUpperCase()}
+function urlForIsbn(){return 'https://kasif.mkutup.gov.tr/OpacArama.aspx?Ara='+encodeURIComponent(cleanIsbn())+'&DtSrc=0&fld=-1&NvBar=0'}
+function validIsbn(s){if(!/^97[89]\d{10}$/.test(s))return false;let sum=0;for(let i=0;i<12;i++)sum+=Number(s[i])*(i%2?3:1);return (10-sum%10)%10===Number(s[12])}
+function setStatus(msg,kind=''){ $('status').className='status '+kind; $('status').textContent=msg; }
+$('openBtn').addEventListener('click',()=>{const isbn=cleanIsbn();if(!validIsbn(isbn)){setStatus('Geçerli bir ISBN-13 girin.','bad');return}const u=urlForIsbn();$('kasifFrame').src=u;window.open(u,'_blank','noopener');setStatus('Kaşif araması yeni sekmede açıldı. Sonuç kaydını kontrol edin.','ok')});
+$('autoBtn').addEventListener('click',async()=>{const isbn=cleanIsbn();if(!validIsbn(isbn)){setStatus('Geçerli bir ISBN-13 girin.','bad');return}$('isbn').value=isbn;$('details').innerHTML='';setStatus('Kaşif sunucusuna doğrudan erişim deneniyor...');try{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);const response=await fetch(urlForIsbn(),{method:'GET',mode:'cors',signal:controller.signal,credentials:'omit'});clearTimeout(timer);if(!response.ok)throw new Error('Kaşif HTTP '+response.status+' yanıtı verdi.');const html=await response.text();if(!html||html.length<100)throw new Error('Kaşif yanıtı boş veya okunabilir değil.');const doc=new DOMParser().parseFromString(html,'text/html');const txt=(doc.body?.innerText||'').replace(/\s+/g,' ').trim();$('details').innerHTML='<div class="result"><b>Sunucudan yanıt alındı</b><p class="muted">Sayfa içeriği geldi. Ancak katalog alanlarının otomatik ayrıştırılması için Kaşif sonuç sayfasının HTML yapısını ayrıca eşleştirmemiz gerekiyor.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">'+(txt.slice(0,1800).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])))+'</pre></div>';setStatus('Bağlantı başarılı: Kaşif sayfası bu tarayıcıdan okunabildi. Şimdi künye alanlarını ayrıştırma aşamasını test edeceğiz.','ok')}catch(e){const reason=e.name==='AbortError'?'15 saniyede yanıt gelmedi.':(e.message||'Bilinmeyen hata');setStatus('Tarayıcıdan otomatik erişim başarısız: '+reason+'\n\nBu sonuç Kaşif’te kitabın bulunmadığını göstermez. Kaşif sayfası tarayıcılar arası erişimi (CORS) engelliyor olabilir. Bu durumda otomatik aktarım için güvenli bir sunucu tarafı bağlantısı gerekir.','warn');$('kasifFrame').src=urlForIsbn()}});
+$('isbn').addEventListener('change',()=>{const s=cleanIsbn();$('isbn').value=s});
+</script>
+</body></html>
