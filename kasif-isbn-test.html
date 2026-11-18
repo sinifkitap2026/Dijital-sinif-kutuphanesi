@@ -85,7 +85,7 @@ $('autoBtn').addEventListener('click',async()=>{
    body:JSON.stringify({isbn})
   });
   const data=await response.json();
-  if(!response.ok||data.error)throw new Error(data.error||('Sunucu HTTP '+response.status));
+  if(!response.ok||data.error)throw new Error((data.error||('Sunucu HTTP '+response.status))+(data.detail?' — Ayrıntı: '+data.detail:''));
   if(!data.html)throw new Error('Kaşif yanıtında okunabilir katalog sayfası bulunamadı.');
   const doc=new DOMParser().parseFromString(data.html,'text/html');
   const pageText=(doc.body?.innerText||doc.body?.textContent||'').replace(/\\s+/g,' ').trim();
@@ -95,7 +95,7 @@ $('autoBtn').addEventListener('click',async()=>{
   $('kasifFrame').src=urlForIsbn();
   setStatus('Sunucu bağlantısı başarılı. Kaşif HTTP '+data.status+' yanıtı verdi. Katalog metni alındı; şimdi sonuçların künye alanlarına doğru ayrıştırıldığını doğruluyoruz.','ok');
  }catch(e){
-  setStatus('Sunucu üzerinden Kaşif sorgusu başarısız: '+(e.message||'Bilinmeyen hata')+'\\n\\nBu aşamada Atlas Kitaplık veritabanına hiçbir kayıt yazılmadı.','warn');
+  setStatus('Sunucu üzerinden Kaşif sorgusu başarısız: '+(e.message||'Bilinmeyen hata')+'\n\nBu aşamada Atlas Kitaplık veritabanına hiçbir kayıt yazılmadı.','warn');
   $('kasifFrame').src=urlForIsbn();
  }
 });
