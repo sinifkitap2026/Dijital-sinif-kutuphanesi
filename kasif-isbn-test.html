@@ -18,7 +18,7 @@
 <label for="isbn">Kitabın ISBN-13 numarası</label>
 <input id="isbn" inputmode="numeric" maxlength="17" placeholder="Barkodu kamerayla okutun veya ISBN girin">
 <button class="primary" id="scanBtn">KAMERAYLA ISBN OKUT</button>
-<button class="primary" id="autoBtn">OKUTULAN ISBN İLE KAŞİF'TEN OTOMATİK GETİRMEYİ DENE</button>
+<button class="primary" id="autoBtn">ISBN İLE OTOMATİK KÜNYE BUL</button>
 <button class="secondary" id="openBtn">KAŞİF'TE ARAMAYI AÇ</button>
 <video id="camera" playsinline style="display:none;width:100%;max-height:300px;border-radius:10px;margin-top:10px;background:#111"></video><div id="status" class="status">Hazır. ISBN girilmedi; önce kitabın barkodunu okutun.</div>
 <div id="details"></div>
@@ -31,7 +31,7 @@
 <section class="card">
 <h2>3. Sonuçları kaydetmeden inceleme</h2>
 <div class="grid">
-<div><label for="title">Kitap adı</label><input id="title" placeholder="Kaşif kaydından aktarılacak"></div>
+<div><label for="title">Kitap adı</label><input id="title" placeholder="Kaynaklardan aktarılacak"></div>
 <div><label for="author">Yazar</label><input id="author" placeholder="Kaşif kaydından aktarılacak"></div>
 <div><label for="publisher">Yayınevi</label><input id="publisher" placeholder="Kaşif kaydından aktarılacak"></div>
 <div><label for="year">Yayın yılı</label><input id="year" placeholder="Varsa"></div>
@@ -86,7 +86,19 @@ $('autoBtn').addEventListener('click',async()=>{
   });
   const data=await response.json();
   if(!response.ok||data.error)throw new Error((data.error||('Sunucu HTTP '+response.status))+(data.detail?' — Ayrıntı: '+data.detail:''));
-  if(!data.html)throw new Error('Kaşif yanıtında okunabilir katalog sayfası bulunamadı.');
+  if(!Array.isArray(data.records))throw new Error('Kaynaklardan beklenen künye listesi alınamadı.');
+  const records=data.records;
+  const statusLines=Object.entries(data.sourceStatus||{}).map(([k,v])=>k+': '+v).join(' | ');
+  if(records.length===0){$('details').textContent='Bu ISBN için otomatik künye bulunamadı. Kaynaklar: '+statusLines;$('kasifFrame').src=urlForIsbn();setStatus('Sunucu çalıştı ancak kaynaklardan ISBN ile doğrulanmış künye dönmedi. '+statusLines,'warn');return;}
+  records.forEach(r=>{
+   const card=document.createElement('div');card.className='result';
+   const heading=document.createElement('b');heading.textContent=(r.title||'Başlıksız kayıt')+' — '+r.source;card.appendChild(heading);
+   const p=document.createElement('p');p.className='muted';p.textContent='Yazar: '+(r.authors||[]).join(', ')+' | Yayınevi: '+(r.publisher||'Belirtilmemiş')+' | Yayın yılı: '+(r.publicationYear||'Belirtilmemiş')+' | Sayfa: '+(r.pages||'Belirtilmemiş');card.appendChild(p);
+   const b=document.createElement('button');b.className='primary';b.textContent='BU KÜNYEYİ TEST ALANLARINA AKTAR';b.addEventListener('click',()=>{$('title').value=r.title||'';$('author').value=(r.authors||[]).join('; ');$('publisher').value=r.publisher||'';$('year').value=r.publicationYear||'';setStatus('Künye test alanlarına aktarıldı; kaydedilmedi. Kaynak: '+r.source,'ok')});card.appendChild(b);$('details').appendChild(card);
+   if(records.length===1)b.click();
+  });
+  $('kasifFrame').src=urlForIsbn();
+  setStatus(records.length+' künye adayı bulundu. Kaynak durumları: '+statusLines+'. Hiçbir veri tabanına kayıt yapılmadı.','ok');
   const doc=new DOMParser().parseFromString(data.html,'text/html');
   const pageText=(doc.body?.innerText||doc.body?.textContent||'').replace(/\\s+/g,' ').trim();
   const title=doc.title||'Kaşif arama sonuçları';
