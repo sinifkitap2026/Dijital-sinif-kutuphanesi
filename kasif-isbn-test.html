@@ -16,10 +16,11 @@
 <section class="card">
 <h2>1. ISBN ile sorgula</h2>
 <label for="isbn">Kitabın ISBN-13 numarası</label>
-<input id="isbn" inputmode="numeric" value="9786051148076" maxlength="17" placeholder="978...">
-<button class="primary" id="autoBtn">KAŞİF'TEN OTOMATİK GETİRMEYİ DENE</button>
+<input id="isbn" inputmode="numeric" maxlength="17" placeholder="Barkodu kamerayla okutun veya ISBN girin">
+<button class="primary" id="scanBtn">KAMERAYLA ISBN OKUT</button>
+<button class="primary" id="autoBtn">OKUTULAN ISBN İLE KAŞİF'TEN OTOMATİK GETİRMEYİ DENE</button>
 <button class="secondary" id="openBtn">KAŞİF'TE ARAMAYI AÇ</button>
-<div id="status" class="status">Hazır. Önce otomatik sorgulamayı deneyin.</div>
+<video id="camera" playsinline style="display:none;width:100%;max-height:300px;border-radius:10px;margin-top:10px;background:#111"></video><div id="status" class="status">Hazır. ISBN girilmedi; önce kitabın barkodunu okutun.</div>
 <div id="details"></div>
 </section>
 <section class="card">
@@ -40,6 +41,19 @@
 </main>
 <script>
 const $=id=>document.getElementById(id);
+let scanStream=null,scanTimer=null;
+$('scanBtn').addEventListener('click',async()=>{
+ if(!('BarcodeDetector' in window)){setStatus('Bu tarayıcı barkod algılamayı desteklemiyor. Güncel Chrome deneyin veya ISBN numarasını girin.','warn');return}
+ try{
+  const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+  scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  const video=$('camera');video.srcObject=scanStream;video.style.display='block';await video.play();
+  setStatus('Kamera açık. Kitabın arka kapağındaki barkodu kameraya gösterin.');
+  const tick=async()=>{if(!scanStream)return;try{const codes=await detector.detect(video);const found=codes.find(x=>/^97[89]\\d{10}$/.test((x.rawValue||'').replace(/\\D/g,'')));if(found){$('isbn').value=found.rawValue.replace(/\\D/g,'');stopScan();setStatus('ISBN barkoddan okundu. Kaşif sorgusu başlatılıyor.','ok');$('autoBtn').click();return}}catch(e){}scanTimer=setTimeout(tick,250)};
+  tick();
+ }catch(e){setStatus('Kamera açılamadı: '+(e.message||e),'bad')}
+});
+function stopScan(){if(scanTimer)clearTimeout(scanTimer);scanTimer=null;if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}$('camera').style.display='none';$('camera').srcObject=null}
 function cleanIsbn(){return $('isbn').value.replace(/[^0-9Xx]/g,'').toUpperCase()}
 function urlForIsbn(){return 'https://kasif.mkutup.gov.tr/OpacArama.aspx?Ara='+encodeURIComponent(cleanIsbn())+'&DtSrc=0&fld=-1&NvBar=0'}
 function validIsbn(s){if(!/^97[89]\d{10}$/.test(s))return false;let sum=0;for(let i=0;i<12;i++)sum+=Number(s[i])*(i%2?3:1);return (10-sum%10)%10===Number(s[12])}
