@@ -99,13 +99,6 @@ $('autoBtn').addEventListener('click',async()=>{
   });
   $('kasifFrame').src=urlForIsbn();
   setStatus(records.length+' künye adayı bulundu. Kaynak durumları: '+statusLines+'. Hiçbir veri tabanına kayıt yapılmadı.','ok');
-  const doc=new DOMParser().parseFromString(data.html,'text/html');
-  const pageText=(doc.body?.innerText||doc.body?.textContent||'').replace(/\\s+/g,' ').trim();
-  const title=doc.title||'Kaşif arama sonuçları';
-  const escaped=pageText.slice(0,5000).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  $('details').innerHTML='<div class="result"><b>'+title.replace(/[&<>]/g,' ')+'</b><p class="muted">Kaşif sayfası sunucu üzerinden alındı. Aşağıdaki metin katalog sonuçlarının ayrıştırılması için inceleniyor.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">'+escaped+'</pre></div>';
-  $('kasifFrame').src=urlForIsbn();
-  setStatus('Sunucu bağlantısı başarılı. Kaşif HTTP '+data.status+' yanıtı verdi. Katalog metni alındı; şimdi sonuçların künye alanlarına doğru ayrıştırıldığını doğruluyoruz.','ok');
  }catch(e){
   setStatus('Sunucu üzerinden Kaşif sorgusu başarısız: '+(e.message||'Bilinmeyen hata')+'\n\nBu aşamada Atlas Kitaplık veritabanına hiçbir kayıt yazılmadı.','warn');
   $('kasifFrame').src=urlForIsbn();
