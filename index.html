@@ -26,7 +26,7 @@
  <button class="primary full" onclick="openScanner()">📷 ISBN / BARKOD OKUT</button>
  <div class="card" style="margin-top:10px"><b>📌 Anlık üzerinde bulunan kitaplar</b><div id="activeLoans"></div></div><div class="card" style="margin-top:10px"><b>⏰ Günlük gecikme listesi</b><div class="small">İade tarihi geçen ve henüz teslim alınmayan kitaplar.</div><div id="dailyOverdueList"></div></div>
 </section>
-<section id="people" class="view"><div class="card"><h2>👥 Öğrenciler</h2><div id="studentAdminPanel" class="notice hidden" style="margin-bottom:10px"><h3 style="margin:0 0 8px">➕ Yeni Öğrenci Ekle</h3><div class="formgrid"><div><label>Adı soyadı</label><input id="newStudentName" placeholder="Öğrencinin adı soyadı"></div><div><label>Öğrenci numarası</label><input id="newStudentNumber" inputmode="numeric" placeholder="Öğrenci numarası"></div><div><label>Şube</label><select id="newStudentClass"></select></div></div><button class="success full" style="margin-top:10px" onclick="addStudent()">ÖĞRENCİYİ KAYDET</button><div id="studentAdminStatus" class="small" style="margin-top:6px"></div></div><div id="studentCountSummary" class="notice" style="margin:10px 0"></div><input id="personSearch" placeholder="Öğrenci ara..." oninput="renderPeople()"><div id="peopleList"></div></div></section>
+<section id="people" class="view"><div class="card"><h2>👥 Öğrenciler</h2><div id="studentAdminPanel" class="notice hidden" style="margin-bottom:10px"><h3 style="margin:0 0 8px">➕ Yeni Öğrenci Ekle</h3><div class="formgrid"><div><label>Adı soyadı</label><input id="newStudentName" placeholder="Öğrencinin adı soyadı"></div><div><label>Öğrenci numarası</label><input id="newStudentNumber" inputmode="numeric" placeholder="Öğrenci numarası"></div><div><label>Şube</label><select id="newStudentClass"></select></div></div><button class="success full" style="margin-top:10px" onclick="addStudent()">ÖĞRENCİYİ KAYDET</button><div id="studentAdminStatus" class="small" style="margin-top:6px"></div></div><div id="studentExcelPanel" class="card hidden" style="margin:10px 0;background:#f8fafc"><h3 style="margin:0 0 6px">📥 Öğrencileri Excel'den Yükle</h3><div class="small">Excel dosyasında sütun başlıkları <b>Öğrenci No</b> ve <b>Ad Soyad</b> olmalı. Her seferinde bir şube seçerek .xlsx veya .xls dosyası yükleyebilirsiniz. Var olan öğrenci kayıtları silinmez; aynı şubedeki numaralar atlanır.</div><label>Yüklenecek şube</label><select id="excelStudentClass"></select><label>Excel dosyası</label><input id="studentExcelFile" type="file" accept=".xlsx,.xls,.csv"><button class="light full" onclick="prepareStudentExcel()">DOSYAYI OKU VE ÖNİZLE</button><div id="studentExcelPreview" class="small" style="margin-top:8px"></div><button id="studentExcelImportBtn" class="success full hidden" onclick="importStudentExcel()">ÖNİZLEMEDEKİ ÖĞRENCİLERİ KAYDET</button><div id="studentExcelStatus" class="small" style="margin-top:8px"></div></div><div id="studentCountSummary" class="notice" style="margin:10px 0"></div><input id="personSearch" placeholder="Öğrenci ara..." oninput="renderPeople()"><div id="peopleList"></div></div></section>
 <section id="books" class="view"><div class="card"><h2>📚 Kitaplar</h2><input id="bookSearch" placeholder="Kitap adı veya ISBN ara..." oninput="renderBooks()"><div id="bookList"></div></div></section>
 <section id="loans" class="view"><div class="card"><h2>🔄 Ödünç / İade</h2><div id="loanList"></div></div></section>
 <section id="barcodeAdmin" class="view"><div class="card"><h2>📚 Kitap Yönetimi</h2><div class="notice">Kitabın arka kapağındaki ISBN barkodunu okutun. Sistem ISBN ile kitap bilgilerini arar; bilgileri kontrol edip kaydedin. Aynı ISBN farklı sınıflardaki nüshalar için ortak kullanılır. Kaşif kataloğunda ayrıca arama yapabilirsiniz.</div><div class="card" style="margin-top:10px;background:#f7fafc"><h3 style="margin-top:0">🧾 Eksik Kitap Bilgilerini Tamamla</h3><div class="small">ISBN kayıtlı olup yazar veya yayınevi eksik olan kitaplar Google Books kataloğunda ISBN tam eşleşmesiyle aranır. Bulunan bilgiler önce listelenir; seçip onaylamadan veritabanına kaydedilmez.</div><div class="actions" style="margin-top:9px"><button class="primary" onclick="scanMissingBookMetadata()">🔎 EKSİKLERİ TARA</button><button class="success" onclick="applySelectedBookMetadata()">☑️ SEÇİLENLERİ KAYDET</button></div><div id="bulkMetadataStatus" class="notice" style="margin-top:8px">Tarama henüz başlatılmadı.</div><div id="bulkMetadataList"></div></div><div class="toolbar"><div><label>Şube</label><select id="manageBranchSelect" onchange="manageBranchChanged()"></select></div><div><label>Kitap seç</label><select id="barcodeBookSelect" onchange="loadBarcodeBook()"></select></div></div><div class="actions"><button class="primary" style="width:100%;min-height:48px;font-size:16px" onclick="newManagedBook();openAssignScanner()">📷 YENİ KİTAP EKLE · BARKODU OKUT</button></div><div id="assignStatus" class="notice" style="margin-top:8px">Hazır.</div><div class="formgrid"><div><label>Kitap adı</label><input id="manageTitle" placeholder="Kitap adı"></div><div><label>Yazar</label><input id="manageAuthor" placeholder="Yazar"></div><div><label>Yayınevi</label><input id="managePublisher" placeholder="Yayınevi"></div><div><label>ISBN (kitabın kimliği)</label><input id="manualIsbn" inputmode="numeric" placeholder="Örn. 9789757032182"></div><div><label>Nüsha barkodu</label><input id="manualBarcode" inputmode="numeric" placeholder="Kullanılmıyor – ISBN yeterlidir" disabled></div></div><div class="actions"><button class="success" onclick="saveManagedBook()">💾 KAYDET</button><button class="danger" onclick="deleteManagedBook()">🗑️ ŞUBE NÜSHASINI SİL</button><button class="light" onclick="currentBookId?openCoverManager(currentBookId):alert('Önce bir kitap seçin veya kaydedin.')">🖼️ KAPAK</button></div><div id="manageBookState" class="small" style="margin-top:8px"></div></div><div class="card"><h3>Kitapların Yönetim Listesi</h3><input id="barcodeSearch" placeholder="Kitap adı, yazar veya ISBN ara..." oninput="renderBarcodeList()"><div id="barcodeList"></div></div></section>
@@ -38,6 +38,7 @@
 <div id="coverModal" class="modal"><div class="sheet"><h2>🖼️ Kapak Yönetimi</h2><div id="coverBookInfo"></div><div class="actions"><button class="primary" onclick="startCoverCamera()">📷 FOTOĞRAF ÇEK</button><button class="light" onclick="pickCoverFromGallery()">🖼️ GALERİDEN SEÇ</button></div><input id="coverFile" type="file" accept="image/*" class="hidden" onchange="handleCoverFile(event)"><div id="coverPreviewArea" style="margin-top:10px"></div><button class="danger full" onclick="removeCover()">🗑️ KAPAĞI KALDIR</button><button class="light full" onclick="closeCoverModal()">KAPAT</button></div></div>
 <div id="coverCameraModal" class="modal"><div class="sheet"><h2>📷 Kapak Fotoğrafı Çek</h2><video id="coverVideo" playsinline muted style="width:100%;border-radius:14px;background:#111"></video><div class="notice">Kapağın tamamını mümkün olduğunca düz ve aydınlık şekilde kadraja alın.</div><div class="actions"><button class="primary" onclick="captureCover()">FOTOĞRAFI ÇEK</button><button class="light" onclick="closeCoverCamera()">KAPAT</button></div><canvas id="coverCanvas" class="hidden"></canvas></div></div>
 <div id="cropModal" class="modal"><div class="sheet"><h2>✂️ Kapağı Kırp</h2><div class="crop-stage" id="cropStage"><img id="cropImage"></div><input id="zoomRange" class="range" type="range" min="0.4" max="3" step="0.01" value="1" oninput="updateCrop()"><div class="small">Fotoğrafı sürükleyin, yakınlaştırın ve beyaz çerçevenin içinde kapağın tamamını bırakın.</div><div class="actions" style="margin-top:10px"><button class="light" onclick="cancelCrop()">İPTAL</button><button class="primary" onclick="finishCrop()">KIRPMAYI TAMAMLA</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
@@ -154,7 +155,73 @@ function getVisibleOverdueLoans(){return data.loans.filter(l=>{const b=bookById(
 function renderDailyOverdueList(){const box=$('dailyOverdueList');if(!box)return;const overdue=getVisibleOverdueLoans();box.innerHTML=overdue.length?overdue.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),days=Math.max(1,Math.floor((new Date(today()+'T00:00:00')-new Date(l.dueAt+'T00:00:00'))/86400000));return '<div class="item"><div><div class="title">'+esc(b?.title||'Kitap')+'</div><div class="meta">'+esc(p?.name||'Öğrenci')+' · '+esc(b?.branch||'')+' · Son teslim: '+esc(l.dueAt)+'</div><div class="overdue">'+days+' gündür gecikmiş</div></div><button class="success" onclick="returnBook(\''+l.id+'\')">GERİ AL</button></div>'}).join(''):'<div class="okbox" style="margin-top:8px">Gecikmiş kitap yok. Harika! 🎉</div>'}
 function showOverdueStartupNotice(){const overdue=getVisibleOverdueLoans();if(!overdue.length)return;const lines=overdue.map(l=>{const b=bookById(l.bookId),p=personById(l.personId);return (p?.name||'Öğrenci')+' — '+(b?.title||'Kitap')+' (son teslim: '+l.dueAt+')'});alert('⏰ İADE SÜRESİ GEÇEN KİTAPLAR: '+overdue.length+' adet\\n\\n'+lines.join('\\n')+'\\n\\nGünlük gecikme listesi ana sayfada yer alıyor.');}
 function renderActiveLoans(){const arr=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)&&!l.returnedAt}).sort((a,b)=>a.dueAt.localeCompare(b.dueAt));$('activeLoans').innerHTML=arr.length?arr.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),s=statusForLoan(l);return `<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(p?.name||'')} · ${esc(b.branch)} · Son teslim: ${l.dueAt}</div><div class="${s==='overdue'?'overdue':''}">${statusText(l)}</div></div></div><button class="success" onclick="returnBook('${l.id}')">GERİ AL</button></div>`}).join(''):`<div class="small" style="padding:12px 0">Şu anda öğrencilerde kitap yok.</div>`}
+let pendingStudentExcelRows=[];
+function normalizeExcelHeader(v){return String(v??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim()}
+function setupStudentExcelPanel(){
+ const panel=$('studentExcelPanel');if(!panel)return;
+ panel.classList.toggle('hidden',mode!=='admin');
+ const sel=$('excelStudentClass');if(!sel)return;
+ const old=sel.value;
+ sel.innerHTML=dbClasses.filter(x=>['3/A','3/B','3/C'].includes(x.name)).map(x=>'<option value="'+Number(x.id)+'">'+esc(x.name)+' · '+esc(x.teacher_name||'')+'</option>').join('');
+ if([...sel.options].some(o=>o.value===old))sel.value=old;
+ else if(currentBranch!=='TÜMÜ'){const cls=dbClasses.find(x=>x.name===currentBranch);if(cls)sel.value=String(cls.id);}
+}
+function prepareStudentExcel(){
+ const file=$('studentExcelFile')?.files?.[0],classId=Number($('excelStudentClass')?.value);
+ const status=$('studentExcelStatus'),preview=$('studentExcelPreview'),btn=$('studentExcelImportBtn');
+ pendingStudentExcelRows=[];btn.classList.add('hidden');preview.textContent='';
+ if(!file||!classId){status.textContent='Önce Excel dosyasını ve şubeyi seçin.';return;}
+ if(!window.XLSX){status.textContent='Excel okuma kütüphanesi yüklenemedi. Sayfayı yenileyip tekrar deneyin.';return;}
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+   if(!rows.length)throw new Error('Dosyada satır bulunamadı.');
+   let headerRow=-1,nameCol=-1,numberCol=-1;
+   for(let r=0;r<Math.min(rows.length,10);r++){
+    const headers=rows[r].map(normalizeExcelHeader);
+    nameCol=headers.findIndex(x=>['ad soyad','adi soyadi','ogrenci adi soyadi','ogrenci adi','isim soyisim','name','student name'].includes(x));
+    numberCol=headers.findIndex(x=>['ogrenci no','ogrenci numarasi','ogrenci numara','numara','no','student number','student id'].includes(x));
+    if(nameCol>=0&&numberCol>=0){headerRow=r;break;}
+   }
+   if(headerRow<0)throw new Error('Başlık satırında “Öğrenci No” ve “Ad Soyad” sütunları bulunamadı.');
+   const seen=new Set(),existing=new Set(data.people.filter(p=>p.type==='Öğrenci'&&p.group===dbClasses.find(x=>Number(x.id)===classId)?.name).map(p=>String(p.number)));
+   let duplicateCount=0,invalidCount=0;
+   for(let r=headerRow+1;r<rows.length;r++){
+    const row=rows[r],name=String(row[nameCol]??'').trim(),rawNo=String(row[numberCol]??'').trim();
+    if(!name&&!rawNo)continue;
+    const number=rawNo.replace(/\\.0$/,'').replace(/\\s/g,'');
+    if(!name||!/^\\d+$/.test(number)){invalidCount++;continue;}
+    if(existing.has(number)||seen.has(number)){duplicateCount++;continue;}
+    seen.add(number);pendingStudentExcelRows.push({name,student_number:Number(number),class_id:classId});
+   }
+   if(!pendingStudentExcelRows.length)throw new Error('Kaydedilecek yeni öğrenci bulunamadı. Yinelenen: '+duplicateCount+', hatalı/eksik: '+invalidCount+'.');
+   const branch=dbClasses.find(x=>Number(x.id)===classId)?.name||'';
+   preview.innerHTML='<div class="notice"><b>'+esc(branch)+'</b> için <b>'+pendingStudentExcelRows.length+'</b> yeni öğrenci hazır.<br>Atlanan yinelenen numara: '+duplicateCount+' · Hatalı/eksik satır: '+invalidCount+'<br>İlk öğrenciler: '+pendingStudentExcelRows.slice(0,8).map(x=>esc(x.student_number+' – '+x.name)).join(' · ')+'</div>';
+   btn.classList.remove('hidden');status.textContent='Önizleme hazır. Kontrol ettikten sonra kaydedebilirsiniz.';
+  }catch(err){status.textContent='Excel okunamadı: '+(err.message||err);}
+ };
+ reader.onerror=()=>status.textContent='Dosya okunamadı.';
+ reader.readAsArrayBuffer(file);
+}
+async function importStudentExcel(){
+ if(mode!=='admin'||!pendingStudentExcelRows.length)return;
+ if(!confirm(pendingStudentExcelRows.length+' öğrenci seçilen şubeye eklenecek. Mevcut kayıtlar silinmeyecek. Devam edilsin mi?'))return;
+ $('studentExcelStatus').textContent='Öğrenciler kaydediliyor...';
+ $('studentExcelImportBtn').disabled=true;
+ try{
+  const {data:inserted,error}=await sbClient.from('students').insert(pendingStudentExcelRows).select('id');
+  if(error)throw error;
+  const count=inserted?.length??pendingStudentExcelRows.length;
+  pendingStudentExcelRows=[];$('studentExcelImportBtn').classList.add('hidden');
+  $('studentExcelStatus').textContent=count+' öğrenci başarıyla eklendi. Mevcut kayıtlar korundu.';
+  $('studentExcelFile').value='';$('studentExcelPreview').textContent='';
+  await loadFromSupabase();
+ }catch(err){$('studentExcelStatus').textContent='Kayıt yapılamadı: '+(err.message||err);}
+ finally{$('studentExcelImportBtn').disabled=false;}
+}
 function renderPeople(){
+ setupStudentExcelPanel();
  const q=($('personSearch')?.value||'').toLocaleLowerCase('tr-TR');
  const panel=$('studentAdminPanel');
  if(panel){
