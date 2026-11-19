@@ -156,7 +156,7 @@ function renderDailyOverdueList(){const box=$('dailyOverdueList');if(!box)return
 function showOverdueStartupNotice(){const overdue=getVisibleOverdueLoans();if(!overdue.length)return;const lines=overdue.map(l=>{const b=bookById(l.bookId),p=personById(l.personId);return (p?.name||'Öğrenci')+' — '+(b?.title||'Kitap')+' (son teslim: '+l.dueAt+')'});alert('⏰ İADE SÜRESİ GEÇEN KİTAPLAR: '+overdue.length+' adet\\n\\n'+lines.join('\\n')+'\\n\\nGünlük gecikme listesi ana sayfada yer alıyor.');}
 function renderActiveLoans(){const arr=data.loans.filter(l=>{const b=bookById(l.bookId);return b&&visibleBooks().includes(b)&&!l.returnedAt}).sort((a,b)=>a.dueAt.localeCompare(b.dueAt));$('activeLoans').innerHTML=arr.length?arr.map(l=>{const b=bookById(l.bookId),p=personById(l.personId),s=statusForLoan(l);return `<div class="item"><div class="bookrow">${coverHTML(b,'cover mini')}<div><div class="title">${esc(b.title)}</div><div class="meta">${esc(p?.name||'')} · ${esc(b.branch)} · Son teslim: ${l.dueAt}</div><div class="${s==='overdue'?'overdue':''}">${statusText(l)}</div></div></div><button class="success" onclick="returnBook('${l.id}')">GERİ AL</button></div>`}).join(''):`<div class="small" style="padding:12px 0">Şu anda öğrencilerde kitap yok.</div>`}
 let pendingStudentExcelRows=[];
-function normalizeExcelHeader(v){return String(v??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim()}
+function normalizeExcelHeader(v){return String(v??'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim()}
 function setupStudentExcelPanel(){
  const panel=$('studentExcelPanel');if(!panel)return;
  panel.classList.toggle('hidden',mode!=='admin');
@@ -190,8 +190,8 @@ function prepareStudentExcel(){
    for(let r=headerRow+1;r<rows.length;r++){
     const row=rows[r],name=String(row[nameCol]??'').trim(),rawNo=String(row[numberCol]??'').trim();
     if(!name&&!rawNo)continue;
-    const number=rawNo.replace(/\\.0$/,'').replace(/\\s/g,'');
-    if(!name||!/^\\d+$/.test(number)){invalidCount++;continue;}
+    const number=rawNo.replace(/\.0$/,'').replace(/\s/g,'');
+    if(!name||!/^\d+$/.test(number)){invalidCount++;continue;}
     if(existing.has(number)||seen.has(number)){duplicateCount++;continue;}
     seen.add(number);pendingStudentExcelRows.push({name,student_number:Number(number),class_id:classId});
    }
