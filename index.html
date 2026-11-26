@@ -108,7 +108,7 @@ function setupTeacherAdminPanel(){
  const panel=$('teacherAdminPanel');if(!panel)return;
  panel.classList.toggle('hidden',mode!=='admin');
  const sel=$('inviteTeacherClass');if(!sel)return;
- const classes=dbClasses.filter(x=>['3/A','3/B','3/C'].includes(x.name));
+ const classes=dbClasses.filter(x=>['3/A','3/B','3/C','TEST 3/D'].includes(x.name));
  sel.innerHTML=classes.map(x=>'<option value="'+Number(x.id)+'">'+esc(x.name)+' · '+esc(x.teacher_name||'')+'</option>').join('');
 }
 async function createNurdanTestAccount(){
