@@ -75,16 +75,29 @@ function statusText(l){const s=statusForLoan(l);return s==="returned"?"İade edi
 function coverHTML(b,cls="cover"){return b?.cover?`<img class="${cls}" src="${esc(b.cover)}" alt="Kapak">`:`<div class="${cls}" style="display:flex;align-items:center;justify-content:center;font-size:10px;color:#667">Kapak yok</div>`}
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active','printable'));$(id).classList.add('active');if(id==='reports')renderReports();if(id==='books')renderBooks();if(id==='people')renderPeople();if(id==='loans')renderLoans();if(id==='barcodeAdmin')renderBarcodeAdmin()}
 function togglePassword(){const input=$('authPassword'),btn=$('togglePasswordBtn');const visible=input.type==='password';input.type=visible?'text':'password';btn.textContent=visible?'GİZLE':'GÖSTER';}
+let recoveryMode = new URLSearchParams(location.search).get('flow')==='recovery' || /(?:^|[&#?])type=recovery(?:&|$)/.test(location.hash+location.search);
+function showRecoveryForm(){
+ recoveryMode=true;
+ $('recoveryPanel').classList.remove('hidden');
+ $('activationPanel').classList.add('hidden');
+ $('authEmail').disabled=true;
+ $('authPassword').disabled=true;
+ $('authStatus').textContent='Yeni şifrenizi belirleyebilirsiniz.';
+}
 async function sendPasswordReset(){
  const email=$('authEmail').value.trim();
  if(!email||!email.includes('@')){$('authStatus').textContent='Şifre sıfırlama için kayıtlı e-posta adresinizi yazın.';return}
  $('authStatus').textContent='Şifre sıfırlama bağlantısı gönderiliyor...';
- const {error}=await sbClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+ const {error}=await sbClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname+'?flow=recovery'});
  $('authStatus').textContent=error?'Bağlantı gönderilemedi: '+error.message:'Uygunsa bu e-posta adresine şifre sıfırlama bağlantısı gönderildi. E-posta kutunuzu ve gereksiz klasörünü kontrol edin.';
 }
+if(recoveryMode){$('authStatus').textContent='Şifre sıfırlama bağlantısı doğrulanıyor...';}
 sbClient.auth.onAuthStateChange((event,session)=>{
- if(event==='PASSWORD_RECOVERY'&&session){$('recoveryPanel').classList.remove('hidden');$('authEmail').disabled=true;$('authPassword').disabled=true;$('authStatus').textContent='Yeni şifrenizi belirleyebilirsiniz.';}
- if((event==='INITIAL_SESSION'||event==='SIGNED_IN')&&session?.user){queueMicrotask(()=>{if(!profileLoadInProgress){profileLoadInProgress=true;applyProfile(session.user).finally(()=>{profileLoadInProgress=false})}})}
+ if(event==='PASSWORD_RECOVERY'&&session){showRecoveryForm();return;}
+ if((event==='INITIAL_SESSION'||event==='SIGNED_IN')&&session?.user){
+  if(recoveryMode){showRecoveryForm();return;}
+  queueMicrotask(()=>{if(!profileLoadInProgress){profileLoadInProgress=true;applyProfile(session.user).finally(()=>{profileLoadInProgress=false})}});
+ }
 });
 async function saveNewPassword(){
  const p=$('newAuthPassword').value,confirm=$('confirmAuthPassword').value;
@@ -94,7 +107,9 @@ async function saveNewPassword(){
  if(error){$('authStatus').textContent='Şifre güncellenemedi: '+error.message;return}
  $('authStatus').textContent='Şifreniz güncellendi. Güvenli şekilde giriş yapabilirsiniz.';
  $('recoveryPanel').classList.add('hidden');$('authEmail').disabled=false;$('authPassword').disabled=false;$('authPassword').value='';
+ recoveryMode=false;
  await sbClient.auth.signOut();
+ history.replaceState(null,'',location.pathname);
 }
 async function signIn(){const login=$('authEmail').value.trim(),password=$('authPassword').value;if(!login||!password){$('authStatus').textContent='E-posta/kullanıcı adı ve şifre gerekli.';return} $('authStatus').textContent='Giriş yapılıyor...';if(login.includes('@')){const {error}=await sbClient.auth.signInWithPassword({email:login,password});if(error){$('authStatus').textContent='Giriş başarısız: '+error.message;return}}else{const {data,error}=await sbClient.functions.invoke('teacher-accounts',{body:{action:'username_login',username:login,password}});if(error||!data?.ok||!data?.session){$('authStatus').textContent=data?.error||'Kullanıcı adı veya şifre hatalı.';return}const {error:sessionError}=await sbClient.auth.setSession(data.session);if(sessionError){$('authStatus').textContent='Oturum açılamadı: '+sessionError.message;return}}$('authStatus').textContent='Giriş başarılı. Hesap bilgileri yükleniyor...'}
 async function applyProfile(user){const {data:p,error}=await sbClient.from('profiles').select('*').eq('id',user.id).single();if(error||!p){$('authStatus').textContent='Kullanıcı profili bulunamadı. Yönetici hesabınızı kontrol etmeli.';await sbClient.auth.signOut();return}if(!p.username){pendingAuthUser=user;$('authEmail').disabled=true;$('authPassword').disabled=true;$('activationPanel').classList.remove('hidden');$('recoveryPanel').classList.add('hidden');$('authStatus').textContent='Hesabınızı kullanmadan önce kullanıcı adınızı ve yeni şifrenizi belirleyin.';return}pendingAuthUser=null;$('activationPanel').classList.add('hidden');$('authEmail').disabled=false;$('authPassword').disabled=false;assignedBranch=null;allowedModes=[];if(p.role==='admin'){allowedModes.push('admin');if(p.class_id){const {data:c,error:cError}=await sbClient.from('classes').select('name').eq('id',p.class_id).single();if(cError||!c||!BRANCHES[c.name]){$('authStatus').textContent='Yönetici hesabının öğretmen şube tanımı hatalı. profiles.class_id bilgisini kontrol edin.';await sbClient.auth.signOut();return}assignedBranch=c.name;allowedModes.push('teacher')}}else{let assigned=null;if(p.class_id){const {data:c,error:cError}=await sbClient.from('classes').select('name').eq('id',p.class_id).single();if(cError||!c||!BRANCHES[c.name]){$('authStatus').textContent='Öğretmen hesabının şube tanımı hatalı. Yönetici profildeki şube bilgisini kontrol etmeli.';await sbClient.auth.signOut();return}assigned=c.name}else{assigned=Object.keys(BRANCHES).find(x=>String(BRANCHES[x].teacher).toLocaleLowerCase('tr-TR')===String(p.full_name).toLocaleLowerCase('tr-TR'))}if(!assigned){$('authStatus').textContent='Öğretmen hesabına şube atanmamış. Yönetici profiles.class_id bilgisini tanımlamalı.';await sbClient.auth.signOut();return}assignedBranch=assigned;allowedModes.push('teacher')}const savedMode=sessionStorage.getItem('atlasMode');mode=allowedModes.includes(savedMode)?savedMode:(allowedModes.includes('admin')?'admin':'teacher');currentBranch=mode==='teacher'?assignedBranch:'TÜMÜ';sessionStorage.setItem('atlasMode',mode);sessionStorage.setItem('atlasBranch',currentBranch);$('authScreen').style.display='none';try{await loadFromSupabase();startApp()}catch(e){$('authScreen').style.display='flex';$('authStatus').textContent='Veriler yüklenemedi: '+(e.message||e);await sbClient.auth.signOut()}}
